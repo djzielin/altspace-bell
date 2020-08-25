@@ -1,0 +1,9 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/** Thrown when a function's preconditions are not met. An argument may be null, or of the wrong type/structure. */
+export declare class MreArgumentError extends Error {
+    constructor(...args: any[]);
+}
+//# sourceMappingURL=errors.d.ts.map

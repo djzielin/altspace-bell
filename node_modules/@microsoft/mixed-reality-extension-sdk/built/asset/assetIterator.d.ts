@@ -1,0 +1,22 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Asset, AssetContainer } from '..';
+/** @hidden */
+export declare class AssetContainerIterator implements Iterator<Asset> {
+    private containers;
+    private containerIndex;
+    private assetIndex;
+    private get container();
+    private get asset();
+    constructor(containers: AssetContainer[]);
+    next(): IteratorResult<Asset>;
+}
+/** @hidden */
+export declare class AssetContainerIterable implements Iterable<Asset> {
+    private containers;
+    constructor(containers: AssetContainer[]);
+    [Symbol.iterator]: () => AssetContainerIterator;
+}
+//# sourceMappingURL=assetIterator.d.ts.map

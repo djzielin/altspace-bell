@@ -1,0 +1,18 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Describes the general shape of a primitive. Specifics are described in a [[PrimitiveDefinition]] object.
+ */
+var PrimitiveShape;
+(function (PrimitiveShape) {
+    PrimitiveShape["Sphere"] = "sphere";
+    PrimitiveShape["Box"] = "box";
+    PrimitiveShape["Capsule"] = "capsule";
+    PrimitiveShape["Cylinder"] = "cylinder";
+    PrimitiveShape["Plane"] = "plane";
+})(PrimitiveShape = exports.PrimitiveShape || (exports.PrimitiveShape = {}));
+//# sourceMappingURL=primitiveTypes.js.map

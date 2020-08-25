@@ -1,0 +1,284 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("..");
+const internal_1 = require("../internal");
+const assetInternal_1 = require("./assetInternal");
+// break import cycle
+const asset_1 = require("./asset");
+/**
+ * Controls how transparency is handled.
+ */
+var AlphaMode;
+(function (AlphaMode) {
+    /** The object is rendered opaque, and transparency info is discarded. */
+    AlphaMode["Opaque"] = "opaque";
+    /**
+     * Any parts with alpha above a certain cutoff ([[Material.alphaCutoff]])
+     * will be rendered solid. Everything else is fully transparent.
+     */
+    AlphaMode["Mask"] = "mask";
+    /**
+     * A pixel's transparency is directly proportional to its alpha value.
+     */
+    AlphaMode["Blend"] = "blend";
+})(AlphaMode = exports.AlphaMode || (exports.AlphaMode = {}));
+/**
+ * Represents a material on a mesh.
+ */
+class Material extends asset_1.Asset {
+    /** The list of animations that target this actor, by ID. */
+    /* public get targetingAnimations() {
+        return this.container.context.animations
+            .filter(anim => anim.targetIds.includes(this.id))
+            .reduce(
+                (map, anim) => {
+                    map.set(anim.id, anim);
+                    return map;
+                },
+                new Map<Guid, Animation>()
+            ) as ReadonlyMap<Guid, Animation>;
+    }*/
+    /** The list of animations that target this actor, by name. */
+    /* public get targetingAnimationsByName() {
+        return this.container.context.animations
+            .filter(anim => anim.targetIds.includes(this.id) && anim.name)
+            .reduce(
+                (map, anim) => {
+                    map.set(anim.name, anim);
+                    return map;
+                },
+                new Map<string, Animation>()
+            ) as ReadonlyMap<string, Animation>;
+    }*/
+    /** INTERNAL USE ONLY. To create a new material from scratch, use [[AssetManager.createMaterial]]. */
+    constructor(container, def) {
+        super(container, def);
+        this._color = __1.Color4.FromColor3(__1.Color3.White(), 1.0);
+        this._mainTextureId = __1.ZeroGuid;
+        this._mainTextureOffset = __1.Vector2.Zero();
+        this._mainTextureScale = __1.Vector2.One();
+        this._emissiveColor = __1.Color3.Black();
+        this._emissiveTextureId = __1.ZeroGuid;
+        this._emissiveTextureOffset = __1.Vector2.Zero();
+        this._emissiveTextureScale = __1.Vector2.One();
+        this._alphaMode = AlphaMode.Opaque;
+        this._alphaCutoff = 0.5;
+        this._internal = new assetInternal_1.AssetInternal(this);
+        if (!def.material) {
+            throw new Error("Cannot construct material from non-material definition");
+        }
+        this.copy(def);
+        // material patching: observe the nested material properties
+        // for changed values, and write them to a patch
+        internal_1.observe({
+            target: this._color,
+            targetName: 'color',
+            notifyChanged: (...path) => this.materialChanged(...path)
+        });
+        internal_1.observe({
+            target: this._mainTextureOffset,
+            targetName: 'mainTextureOffset',
+            notifyChanged: (...path) => this.materialChanged(...path)
+        });
+        internal_1.observe({
+            target: this._mainTextureScale,
+            targetName: 'mainTextureScale',
+            notifyChanged: (...path) => this.materialChanged(...path)
+        });
+        internal_1.observe({
+            target: this._emissiveColor,
+            targetName: 'emissiveColor',
+            notifyChanged: (...path) => this.materialChanged(...path)
+        });
+        internal_1.observe({
+            target: this._emissiveTextureOffset,
+            targetName: 'emissiveTextureOffset',
+            notifyChanged: (...path) => this.materialChanged(...path)
+        });
+        internal_1.observe({
+            target: this._emissiveTextureScale,
+            targetName: 'emissiveTextureScale',
+            notifyChanged: (...path) => this.materialChanged(...path)
+        });
+    }
+    /** @hidden */
+    get internal() { return this._internal; }
+    /** @inheritdoc */
+    get color() { return this._color; }
+    set color(value) { if (value) {
+        this._color.copy(value);
+    } }
+    /** @returns A shared reference to this material's texture asset */
+    get mainTexture() {
+        var _a;
+        return (_a = this.container.context.internal.lookupAsset(this._mainTextureId)) === null || _a === void 0 ? void 0 : _a.texture;
+    }
+    set mainTexture(value) {
+        var _a, _b;
+        this.mainTextureId = (_b = (_a = value) === null || _a === void 0 ? void 0 : _a.id, (_b !== null && _b !== void 0 ? _b : __1.ZeroGuid));
+    }
+    /** @inheritdoc */
+    get mainTextureId() { return this._mainTextureId; }
+    set mainTextureId(value) {
+        if (!value) {
+            value = __1.ZeroGuid;
+        }
+        if (!this.container.context.internal.lookupAsset(value)) {
+            value = __1.ZeroGuid; // throw?
+        }
+        if (value === this._mainTextureId) {
+            return;
+        }
+        if (this.mainTexture) {
+            this.mainTexture.clearReference(this);
+        }
+        this._mainTextureId = value;
+        if (this.mainTexture) {
+            this.mainTexture.addReference(this);
+        }
+        this.materialChanged('mainTextureId');
+    }
+    /** @inheritdoc */
+    get mainTextureOffset() { return this._mainTextureOffset; }
+    set mainTextureOffset(value) { if (value) {
+        this._mainTextureOffset.copy(value);
+    } }
+    /** @inheritdoc */
+    get mainTextureScale() { return this._mainTextureScale; }
+    set mainTextureScale(value) { if (value) {
+        this._mainTextureScale.copy(value);
+    } }
+    /** @inheritdoc */
+    get emissiveColor() { return this._emissiveColor; }
+    set emissiveColor(value) { if (value) {
+        this._emissiveColor.copy(value);
+    } }
+    /** @returns A shared reference to this material's texture asset */
+    get emissiveTexture() {
+        var _a;
+        return (_a = this.container.context.internal.lookupAsset(this._emissiveTextureId)) === null || _a === void 0 ? void 0 : _a.texture;
+    }
+    set emissiveTexture(value) {
+        var _a, _b;
+        this.emissiveTextureId = (_b = (_a = value) === null || _a === void 0 ? void 0 : _a.id, (_b !== null && _b !== void 0 ? _b : __1.ZeroGuid));
+    }
+    /** @inheritdoc */
+    get emissiveTextureId() { return this._emissiveTextureId; }
+    set emissiveTextureId(value) {
+        if (!value) {
+            value = __1.ZeroGuid;
+        }
+        if (!this.container.context.internal.lookupAsset(value)) {
+            value = __1.ZeroGuid; // throw?
+        }
+        if (value === this._emissiveTextureId) {
+            return;
+        }
+        if (this.emissiveTexture) {
+            this.emissiveTexture.clearReference(this);
+        }
+        this._emissiveTextureId = value;
+        if (this.emissiveTexture) {
+            this.emissiveTexture.addReference(this);
+        }
+        this.materialChanged('emissiveTextureId');
+    }
+    /** @inheritdoc */
+    get emissiveTextureOffset() { return this._emissiveTextureOffset; }
+    set emissiveTextureOffset(value) { if (value) {
+        this._emissiveTextureOffset.copy(value);
+    } }
+    /** @inheritdoc */
+    get emissiveTextureScale() { return this._emissiveTextureScale; }
+    set emissiveTextureScale(value) { if (value) {
+        this._emissiveTextureScale.copy(value);
+    } }
+    /** @inheritdoc */
+    get alphaMode() { return this._alphaMode; }
+    set alphaMode(value) { this._alphaMode = value; this.materialChanged('alphaMode'); }
+    /** @inheritdoc */
+    get alphaCutoff() { return this._alphaCutoff; }
+    set alphaCutoff(value) { this._alphaCutoff = value; this.materialChanged('alphaCutoff'); }
+    /** @inheritdoc */
+    get material() { return this; }
+    copy(from) {
+        if (!from) {
+            return this;
+        }
+        // Pause change detection while we copy the values into the actor.
+        const wasObserving = this.internal.observing;
+        this.internal.observing = false;
+        super.copy(from);
+        if (from.material) {
+            if (from.material.color) {
+                this.color.copy(from.material.color);
+            }
+            if (from.material.mainTextureOffset) {
+                this.mainTextureOffset.copy(from.material.mainTextureOffset);
+            }
+            if (from.material.mainTextureScale) {
+                this.mainTextureScale.copy(from.material.mainTextureScale);
+            }
+            if (from.material.mainTextureId) {
+                this.mainTextureId = from.material.mainTextureId;
+            }
+            if (from.material.emissiveColor) {
+                this.emissiveColor.copy(from.material.emissiveColor);
+            }
+            if (from.material.emissiveTextureOffset) {
+                this.emissiveTextureOffset.copy(from.material.emissiveTextureOffset);
+            }
+            if (from.material.emissiveTextureScale) {
+                this.emissiveTextureScale.copy(from.material.emissiveTextureScale);
+            }
+            if (from.material.emissiveTextureId) {
+                this.emissiveTextureId = from.material.emissiveTextureId;
+            }
+            if (from.material.alphaMode) {
+                this.alphaMode = from.material.alphaMode;
+            }
+            if (from.material.alphaCutoff) {
+                this.alphaCutoff = from.material.alphaCutoff;
+            }
+        }
+        this.internal.observing = wasObserving;
+        return this;
+    }
+    /** @hidden */
+    toJSON() {
+        return Object.assign(Object.assign({}, super.toJSON()), { material: {
+                color: this.color.toJSON(),
+                mainTextureId: this.mainTextureId,
+                mainTextureOffset: this.mainTextureOffset.toJSON(),
+                mainTextureScale: this.mainTextureScale.toJSON(),
+                emissiveColor: this.emissiveColor.toJSON(),
+                emissiveTextureId: this.emissiveTextureId,
+                emissiveTextureOffset: this.emissiveTextureOffset.toJSON(),
+                emissiveTextureScale: this.emissiveTextureScale.toJSON(),
+                alphaMode: this.alphaMode,
+                alphaCutoff: this.alphaCutoff
+            } });
+    }
+    materialChanged(...path) {
+        if (this.internal.observing) {
+            this.container.context.internal.incrementGeneration();
+            this.internal.patch = this.internal.patch || { material: {} };
+            internal_1.readPath(this, this.internal.patch.material, ...path);
+        }
+    }
+    /** @hidden */
+    breakReference(ref) {
+        if (ref instanceof __1.Actor && ref.appearance.material === this) {
+            ref.appearance.material = null;
+        }
+        else if (ref instanceof __1.Animation && ref.isOrphan()) {
+            ref.delete();
+        }
+    }
+}
+exports.Material = Material;
+//# sourceMappingURL=material.js.map

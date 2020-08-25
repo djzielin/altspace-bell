@@ -1,0 +1,139 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Animatible, AnimationWrapMode, Context, EaseCurve, Guid } from '..';
+import { Like, Patchable } from '../internal';
+import { AnimationInternal } from './animationInternal';
+/** Options for [[Animation.AnimateTo]]. */
+export declare type AnimateToOptions<T extends Animatible> = {
+    /** The amount of time in seconds it takes to reach the [[destination]] value. */
+    duration: number;
+    /** A collection of property values that should be animated, and the desired final values. */
+    destination: Partial<Like<T>>;
+    /** How the values should approach their destinations. Defaults to [[AnimationEaseCurves.Linear]]. */
+    easing?: EaseCurve;
+};
+/** A serialized animation definition */
+export interface AnimationLike {
+    /** Generated unique ID of this animation */
+    id: Guid;
+    /** The non-unique name of this animation */
+    name: string;
+    /** The server time (in milliseconds since the UNIX epoch) when the animation was started */
+    basisTime: number;
+    /** The current playback time, based on basis time and speed */
+    time: number;
+    /** Playback speed multiplier */
+    speed: number;
+    /** When multiple animations play together, this is the relative strength of this instance */
+    weight: number;
+    /** What happens when the animation hits the last frame */
+    wrapMode: AnimationWrapMode;
+    /** Convenience property for calling [[play]] or [[stop]] */
+    isPlaying: boolean;
+    /** The ID of the AnimationData bound to this animation */
+    dataId: Readonly<Guid>;
+    /** The IDs of the objects targeted by this animation */
+    targetIds: Readonly<Guid[]>;
+    /**
+     * The length in seconds of the animation. Only populated for animations without data.
+     * See [[dataId]] and [[AnimationData.duration]].
+     */
+    duration: number;
+}
+/** A runtime animation */
+export declare class Animation implements AnimationLike, Patchable<AnimationLike> {
+    private context;
+    /** @hidden */
+    internal: AnimationInternal;
+    private _id;
+    /** @inheritdoc */
+    get id(): Guid;
+    private _name;
+    /** @inheritdoc */
+    get name(): string;
+    set name(val: string);
+    private _basisTime;
+    /** @inheritdoc */
+    get basisTime(): number;
+    set basisTime(val: number);
+    private _time;
+    /** @inheritdoc */
+    get time(): number;
+    set time(val: number);
+    /** [[time]], correcting for overruns from looping animations. Is always between 0 and [[duration]]. */
+    get normalizedTime(): number;
+    private _speed;
+    /** @inheritdoc */
+    get speed(): number;
+    set speed(val: number);
+    private _weight;
+    /** @inheritdoc */
+    get weight(): number;
+    set weight(val: number);
+    private _wrapMode;
+    /** @inheritdoc */
+    get wrapMode(): AnimationWrapMode;
+    set wrapMode(val: AnimationWrapMode);
+    private _dataId;
+    /** @inheritdoc */
+    get dataId(): Guid;
+    /** The keyframe data bound to this animation */
+    get data(): import("./animationData").AnimationData;
+    private _targetIds;
+    /** @inheritdoc */
+    get targetIds(): readonly Guid[];
+    /** The list of actors targeted by this animation. */
+    get targetActors(): import("..").Actor[];
+    /** The list of animations targeted by this animation. */
+    /** The list of materials targeted by this animation. */
+    private _duration;
+    /** @inheritdoc */
+    get duration(): number;
+    /**
+     * Determine if this animation is playing based on the animation's weight. Setting this property calls
+     * [[play]] and [[stop]] internally.
+     */
+    get isPlaying(): boolean;
+    set isPlaying(val: boolean);
+    /** The list of other animations that target this animation, by ID. */
+    /** The list of other animations that target this animation, by name. */
+    /** INTERNAL USE ONLY. Animations are created by loading prefabs with animations on them. */
+    constructor(context: Context, id: Guid);
+    /**
+     * Play the animation by setting its weight to `1`.
+     * @param reset If true, restart the animation from the beginning.
+     * Defaults to `true` when `wrapMode` is `Once`, and `false` otherwise.
+     */
+    play(reset?: boolean): void;
+    /**
+     * Halt the running animation by setting its weight to `0`. Has no effect if the animation is already stopped.
+     */
+    stop(): void;
+    private _finished;
+    /** @returns A promise that resolves when the animation completes. This only occurs if the wrap mode is set
+     * to "Once". The promise is not resolved if the animation is stopped manually.
+     */
+    finished(): Promise<void>;
+    /**
+     * Tells whether this animation is an orphan, i.e. its data has been unloaded, or it has no live targets.
+     * @returns Whether this animation is an orphan.
+     */
+    isOrphan(): boolean;
+    /** Destroy this animation. */
+    delete(): void;
+    /** @hidden */
+    toJSON(): AnimationLike;
+    /** @hidden */
+    copy(patch: Partial<AnimationLike>): this;
+    private animationChanged;
+    /**
+     * Animate an object's properties to a desired final state.
+     * @param context A valid MRE context.
+     * @param object The object to animate. Must be either an [[Actor]], an [[Animation]], or a [[Material]].
+     * @param options How the object should animate.
+     */
+    static AnimateTo<T extends Animatible>(context: Context, object: T, options: AnimateToOptions<T>): Promise<void>;
+}
+//# sourceMappingURL=animation.d.ts.map

@@ -1,0 +1,129 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Client, ExportedPromise, Message, Payloads, Session, SynchronizationStage } from '../../../internal';
+import { Guid } from '../../..';
+/**
+ * @hidden
+ * Indicates how to handle live message traffic during the client join process.
+ */
+export declare type MessageHandling = 
+/**
+ * Ignore the message.
+ */
+'ignore' | 
+/**
+ * Queue message for later delivery.
+ */
+'queue' | 
+/**
+ * Allow the message to be sent.
+ */
+'allow' | 
+/**
+ * Trying to send this message indicates an operational error.
+ */
+'error';
+/**
+ * @hidden
+ * Defines how specific messages are processed by different parts of the multipeer adapter.
+ */
+export declare type Rule = {
+    /**
+     * During synchronization, apply these rules to outgoing messages.
+     */
+    synchronization: {
+        /**
+         * `stage` - The synchronization stage that serves as the inflection point for this message.
+         */
+        stage: SynchronizationStage;
+        /**
+         * `before` - How to handle outgoing messages of this type before `stage` has begun.
+         */
+        before: MessageHandling;
+        /**
+         * `during` - How to handle outgoing messages of this type while `stage` is active.
+         */
+        during: MessageHandling;
+        /**
+         * `after` - How to handle outgoing messages of this type after `stage` is complete.
+         */
+        after: MessageHandling;
+    };
+    /**
+     * Message preprocessing applied by the Client class.
+     */
+    client: {
+        /**
+         * If non-zero, a timeout will be set for this message. If we don't receive a reply before the
+         * timeout expires, the client connection will be closed. Only applicable to messages expecting
+         * replies.
+         */
+        timeoutSeconds: number;
+        /**
+         * Called before a message is queued for later delivery to a client.
+         * @param session The current session.
+         * @param client The client to receive the message.
+         * @param message The message to queue.
+         * @param promise Optional promise to complete once the reply message is received.
+         * @returns Return the message if you want it to continue to be processed. Return null/undefined
+         * to stop processing of the message.
+         */
+        beforeQueueMessageForClient: (session: Session, client: Client, message: Message<any>, promise: ExportedPromise) => Message;
+        /**
+         * Called twice before a message is sent: first to determine if a message is user-dependent
+         * (it is queued until user-join if so), and second to determine if the joined user is the
+         * correct user.
+         * @param message The message to be checked
+         * @param userId A GUID to a (possibly unjoined) user
+         * @param session The current session.
+         * @param client The client to send the message
+         * @returns `null` if the message does not depend on a user, `true` if it depends on the given
+         * user, and `false` if it depends on a different user.
+         */
+        shouldSendToUser: (message: Message<any>, userId: Guid, session: Session, client: Client) => boolean | null;
+    };
+    /**
+     * Message preprocessing applied by the Session class.
+     */
+    session: {
+        /**
+         * Called after a message is received from the app, before propagating the message.
+         * @param session The current session.
+         * @param message The message.
+         * @returns Return the message if you want it to continue to be processed. Return a falsy value
+         * to stop processing of the message.
+         */
+        beforeReceiveFromApp: (session: Session, message: any) => Message;
+        /**
+         * Called after a message is received from a client, before propagating the message.
+         * @param session The current session.
+         * @param client The client who sent the message.
+         * @param message The message itself (also contains the payload).
+         * @returns Return the message if you want it to continue to be processed. Return a falsy value
+         * to stop processing of the message.
+         */
+        beforeReceiveFromClient: (session: Session, client: Client, message: any) => Message;
+    };
+};
+/**
+ * @hidden
+ * The DefaultRule provides reasonable default rule settings, ensuring all fields are assigned.
+ */
+export declare const DefaultRule: Rule;
+/**
+ * @hidden
+ * MissingRule alerts the SDK developer that they need to define a Rule for the payload.
+ */
+export declare const MissingRule: Rule;
+/**
+ * @hidden
+ * A global collection of message rules used by different parts of the multipeer adapter.
+ * Getting a compiler error here? It is likely that `Rules` is missing a rule for the new payload type you added.
+ * *** KEEP ENTRIES SORTED ***
+ */
+export declare const Rules: {
+    [id in Payloads.PayloadType]: Rule;
+};
+//# sourceMappingURL=rules.d.ts.map

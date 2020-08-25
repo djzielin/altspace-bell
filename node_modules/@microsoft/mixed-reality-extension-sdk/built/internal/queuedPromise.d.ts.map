@@ -1,0 +1,1 @@
+{"version":3,"file":"queuedPromise.d.ts","sourceRoot":"","sources":["../../src/internal/queuedPromise.ts"],"names":[],"mappings":"AAAA;;;GAGG;;AAEH,OAAO,EAAE,eAAe,EAAE,MAAM,aAAa,CAAC;AAE9C,cAAc;AACd,MAAM,WAAW,aAAa;IAC7B,OAAO,EAAE,eAAe,CAAC;IACzB,OAAO,EAAE,MAAM,CAAC,KAAK,CAAC;CACtB"}

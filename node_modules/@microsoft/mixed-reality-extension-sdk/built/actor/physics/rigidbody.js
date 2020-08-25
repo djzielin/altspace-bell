@@ -1,0 +1,167 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("../..");
+/**
+ * Class that represents a rigid body found on an actor.
+ */
+class RigidBody {
+    /**
+     * PUBLIC METHODS
+     */
+    /**
+     * @hidden
+     * Creates a new RigidBody instance.
+     * @param $owner The owning actor instance. Field name is prefixed with a dollar sign so that it is ignored by
+     * the actor patch detection system.
+     */
+    constructor($owner) {
+        this.$owner = $owner;
+        /** @inheritdoc */
+        this.enabled = true;
+        /** @inheritdoc */
+        this.mass = 1.0;
+        /** @inheritdoc */
+        this.detectCollisions = true;
+        /** @inheritdoc */
+        this.collisionDetectionMode = __1.CollisionDetectionMode.Discrete;
+        /** @inheritdoc */
+        this.useGravity = true;
+        /** @inheritdoc */
+        this.isKinematic = false;
+        this._velocity = __1.Vector3.Zero();
+        this._angularVelocity = __1.Vector3.Zero();
+        this._constraints = [];
+    }
+    /**
+     * PUBLIC ACCESSORS
+     */
+    /** @inheritdoc */
+    get velocity() { return this._velocity; }
+    set velocity(value) { this._velocity.copy(value); }
+    /** @inheritdoc */
+    get angularVelocity() { return this._angularVelocity; }
+    set angularVelocity(value) { this._angularVelocity.copy(value); }
+    /** @inheritdoc */
+    get constraints() { return this._constraints; }
+    set constraints(value) {
+        this._constraints = [...value];
+        // TODO: Figure out array patching
+        // this._changed("constraints");
+    }
+    /** @hidden */
+    copy(from) {
+        if (!from) {
+            return this;
+        }
+        if (from.enabled !== undefined) {
+            this.enabled = from.enabled;
+        }
+        if (from.velocity !== undefined) {
+            this._velocity.copy(from.velocity);
+        }
+        if (from.angularVelocity !== undefined) {
+            this._angularVelocity.copy(from.angularVelocity);
+        }
+        if (from.mass !== undefined) {
+            this.mass = from.mass;
+        }
+        if (from.detectCollisions !== undefined) {
+            this.detectCollisions = from.detectCollisions;
+        }
+        if (from.collisionDetectionMode !== undefined) {
+            this.collisionDetectionMode = from.collisionDetectionMode;
+        }
+        if (from.useGravity !== undefined) {
+            this.useGravity = from.useGravity;
+        }
+        if (from.isKinematic !== undefined) {
+            this.isKinematic = from.isKinematic;
+        }
+        if (from.constraints !== undefined) {
+            this.constraints = from.constraints;
+        }
+        return this;
+    }
+    /** @hidden */
+    toJSON() {
+        return {
+            enabled: this.enabled,
+            velocity: this.velocity.toJSON(),
+            angularVelocity: this.angularVelocity.toJSON(),
+            mass: this.mass,
+            detectCollisions: this.detectCollisions,
+            collisionDetectionMode: this.collisionDetectionMode,
+            useGravity: this.useGravity,
+            isKinematic: this.isKinematic,
+            constraints: this.constraints,
+        };
+    }
+    /**
+     * Move the rigid body to the new position with interpolation where supported.
+     * @param position The position to move to.
+     */
+    movePosition(position) {
+        this.$owner.context.internal.sendRigidBodyCommand(this.$owner.id, {
+            type: 'rigidbody-move-position',
+            position,
+        });
+    }
+    /**
+     * Rotate the rigid body to the new rotation with interpolation where supported.
+     * @param rotation The new rotation to rotate to.
+     */
+    moveRotation(rotation) {
+        this.$owner.context.internal.sendRigidBodyCommand(this.$owner.id, {
+            type: 'rigidbody-move-rotation',
+            rotation,
+        });
+    }
+    /**
+     * Apply a force to the rigid body for physics to simulate.
+     * @param force The force to apply to the rigid body.
+     */
+    addForce(force) {
+        this.$owner.context.internal.sendRigidBodyCommand(this.$owner.id, {
+            type: 'rigidbody-add-force',
+            force,
+        });
+    }
+    /**
+     * Apply a force to the rigid body at a specific position for physics to simulate.
+     * @param force The force to apply to the rigid body.
+     * @param position The position at which to apply the force.  This should be in app coordinates.
+     */
+    addForceAtPosition(force, position) {
+        this.$owner.context.internal.sendRigidBodyCommand(this.$owner.id, {
+            type: 'rigidbody-add-force-at-position',
+            force,
+            position,
+        });
+    }
+    /**
+     * Add a torque to the rigid body for physics to simulate.
+     * @param torque The torque to apply to the rigid body.
+     */
+    addTorque(torque) {
+        this.$owner.context.internal.sendRigidBodyCommand(this.$owner.id, {
+            type: 'rigidbody-add-torque',
+            torque,
+        });
+    }
+    /**
+     * Add a relative torque to the rigid body for physics to simulate.
+     * @param relativeTorque The relative torque to apply to the rigid body.
+     */
+    addRelativeTorque(relativeTorque) {
+        this.$owner.context.internal.sendRigidBodyCommand(this.$owner.id, {
+            type: 'rigidbody-add-relative-torque',
+            relativeTorque,
+        });
+    }
+}
+exports.RigidBody = RigidBody;
+//# sourceMappingURL=rigidbody.js.map

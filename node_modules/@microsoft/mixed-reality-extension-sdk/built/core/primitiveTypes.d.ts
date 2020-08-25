@@ -1,0 +1,80 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Vector3Like } from '..';
+/**
+ * Describes the general shape of a primitive. Specifics are described in a [[PrimitiveDefinition]] object.
+ */
+export declare enum PrimitiveShape {
+    Sphere = "sphere",
+    Box = "box",
+    Capsule = "capsule",
+    Cylinder = "cylinder",
+    Plane = "plane"
+}
+export declare type SpherePrimitiveDefinition = {
+    shape: PrimitiveShape.Sphere;
+    /**
+     * The bounding box size of the primitive.
+     */
+    dimensions?: Partial<Vector3Like>;
+    /**
+     * The number of horizontal or radial segments of spheres, cylinders, capsules, and planes.
+     */
+    uSegments?: number;
+    /**
+     * The number of vertical or axial segments of spheres, capsules, and planes.
+     */
+    vSegments?: number;
+};
+export declare type BoxPrimitiveDefinition = {
+    shape: PrimitiveShape.Box;
+    /**
+     * The bounding box size of the primitive.
+     */
+    dimensions?: Partial<Vector3Like>;
+};
+export declare type CapsulePrimitiveDefinition = {
+    shape: PrimitiveShape.Capsule;
+    /**
+     * The bounding box size of the primitive.
+     */
+    dimensions?: Partial<Vector3Like>;
+    /**
+     * The number of horizontal or radial segments of spheres, cylinders, capsules, and planes.
+     */
+    uSegments?: number;
+    /**
+     * The number of vertical or axial segments of spheres, capsules, and planes.
+     */
+    vSegments?: number;
+};
+export declare type CylinderPrimitiveDefinition = {
+    shape: PrimitiveShape.Cylinder;
+    /**
+     * The bounding box size of the primitive.
+     */
+    dimensions?: Partial<Vector3Like>;
+    /**
+     * The number of horizontal or radial segments of spheres, cylinders, capsules, and planes.
+     */
+    uSegments?: number;
+};
+export declare type PlanePrimitiveDefinition = {
+    shape: PrimitiveShape.Plane;
+    /**
+     * The bounding box size of the primitive.
+     */
+    dimensions?: Partial<Vector3Like>;
+    /**
+     * The number of horizontal or radial segments of spheres, cylinders, capsules, and planes.
+     */
+    uSegments?: number;
+    /**
+     * The number of vertical or axial segments of spheres, capsules, and planes.
+     */
+    vSegments?: number;
+};
+export declare type PrimitiveDefinition = SpherePrimitiveDefinition | BoxPrimitiveDefinition | CapsulePrimitiveDefinition | CylinderPrimitiveDefinition | PlanePrimitiveDefinition;
+//# sourceMappingURL=primitiveTypes.d.ts.map

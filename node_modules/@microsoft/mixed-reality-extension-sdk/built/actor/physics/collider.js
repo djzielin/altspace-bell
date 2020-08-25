@@ -1,0 +1,143 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const colliderInternal_1 = require("./colliderInternal");
+/**
+ * Controls what the assigned actors will collide with.
+ */
+var CollisionLayer;
+(function (CollisionLayer) {
+    /**
+     * Good for most actors. These will collide with all "physical" things: other default actors,
+     * navigation actors, and the non-MRE environment. It also blocks the UI cursor and receives press/grab events.
+     */
+    CollisionLayer["Default"] = "default";
+    /**
+     * For actors considered part of the environment. Can move/teleport onto these colliders,
+     * but cannot click or grab them. For example, the floor, an invisible wall, or an elevator platform.
+     */
+    CollisionLayer["Navigation"] = "navigation";
+    /**
+     * For "non-physical" actors. Only interact with the cursor (with press/grab events) and other holograms.
+     * For example, if you wanted a group of actors to behave as a separate physics simulation
+     * from the main scene.
+     */
+    CollisionLayer["Hologram"] = "hologram";
+    /**
+     * Actors in this layer do not collide with anything but the UI cursor.
+     */
+    CollisionLayer["UI"] = "ui";
+})(CollisionLayer = exports.CollisionLayer || (exports.CollisionLayer = {}));
+/**
+ * A collider represents the abstraction of a physics collider object on the host.
+ */
+class Collider {
+    /**
+     * @hidden
+     * Creates a new Collider instance.
+     * @param $owner The owning actor instance. Field name is prefixed with a dollar sign so that it is ignored by
+     * the actor patch detection system.
+     * @param initFrom The collider like to use to init from.
+     */
+    constructor($owner, from) {
+        this.$owner = $owner;
+        /** @hidden */
+        this.$DoNotObserve = ['_internal'];
+        this.enabled = true;
+        this.isTrigger = false;
+        this.bounciness = 0.0;
+        this.staticFriction = 0.0;
+        this.dynamicFriction = 0.0;
+        this.layer = CollisionLayer.Default;
+        if (from) {
+            if (!from.geometry || !from.geometry.shape) {
+                throw new Error("Must provide valid collider params containing a valid shape");
+            }
+            this._internal = new colliderInternal_1.ColliderInternal(this, $owner);
+            if (from.geometry !== undefined) {
+                this.geometry = from.geometry;
+            }
+            if (from.enabled !== undefined) {
+                this.enabled = from.enabled;
+            }
+            if (from.isTrigger !== undefined) {
+                this.isTrigger = from.isTrigger;
+            }
+            if (from.bounciness !== undefined) {
+                this.bounciness = from.bounciness;
+            }
+            if (from.staticFriction !== undefined) {
+                this.staticFriction = from.staticFriction;
+            }
+            if (from.dynamicFriction !== undefined) {
+                this.dynamicFriction = from.dynamicFriction;
+            }
+            if (from.layer !== undefined) {
+                this.layer = from.layer;
+            }
+        }
+        else {
+            throw new Error("Must provide a valid collider-like to initialize from.");
+        }
+    }
+    /** @hidden */
+    get internal() { return this._internal; }
+    /**
+     * The current event subscriptions that are active on this collider.
+     */
+    get eventSubscriptions() {
+        return this.internal.eventSubscriptions;
+    }
+    /**
+     * Add a collision event handler for the given collision event state.
+     * @param eventType The type of the collision event.
+     * @param handler The handler to call when a collision event with the matching
+     * collision event state is received.
+     */
+    onCollision(eventType, handler) {
+        this.internal.on(eventType, handler);
+    }
+    /**
+     * Remove the collision handler for the given collision event state.
+     * @param eventType The type of the collision event.
+     * @param handler The handler to remove.
+     */
+    offCollision(eventType, handler) {
+        this.internal.off(eventType, handler);
+    }
+    /**
+     * Add a trigger event handler for the given collision event state.
+     * @param eventType The type of the trigger event.
+     * @param handler The handler to call when a trigger event with the matching
+     * collision event state is received.
+     */
+    onTrigger(eventType, handler) {
+        this.internal.on(eventType, handler);
+    }
+    /**
+     * Remove the trigger handler for the given collision event state.
+     * @param eventType The type of the trigger event.
+     * @param handler The handler to remove.
+     */
+    offTrigger(eventType, handler) {
+        this.internal.off(eventType, handler);
+    }
+    /** @hidden */
+    toJSON() {
+        return {
+            enabled: this.enabled,
+            isTrigger: this.isTrigger,
+            bounciness: this.bounciness,
+            staticFriction: this.staticFriction,
+            dynamicFriction: this.dynamicFriction,
+            layer: this.layer,
+            geometry: this.geometry,
+            eventSubscriptions: this.eventSubscriptions
+        };
+    }
+}
+exports.Collider = Collider;
+//# sourceMappingURL=collider.js.map

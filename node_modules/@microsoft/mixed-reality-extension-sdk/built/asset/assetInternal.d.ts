@@ -1,0 +1,17 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Asset, AssetLike } from '..';
+import { InternalPatchable } from '../internal';
+/**
+ * @hidden
+ */
+export declare class AssetInternal implements InternalPatchable<AssetLike> {
+    asset: Asset;
+    observing: boolean;
+    patch: AssetLike;
+    constructor(asset: Asset);
+    getPatchAndReset(): AssetLike;
+}
+//# sourceMappingURL=assetInternal.d.ts.map

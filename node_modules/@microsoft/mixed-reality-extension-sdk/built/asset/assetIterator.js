@@ -1,0 +1,41 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+/** @hidden */
+class AssetContainerIterator {
+    constructor(containers) {
+        this.containers = containers;
+        this.containerIndex = 0;
+        this.assetIndex = 0;
+    }
+    get container() { return this.containers[this.containerIndex]; }
+    get asset() { return this.container && this.container.assets[this.assetIndex]; }
+    next() {
+        if (!this.asset) {
+            this.containerIndex += 1;
+            this.assetIndex = 0;
+        }
+        if (!this.asset) {
+            return { done: true, value: null };
+        }
+        const asset = this.asset;
+        this.assetIndex += 1;
+        return {
+            done: false,
+            value: asset
+        };
+    }
+}
+exports.AssetContainerIterator = AssetContainerIterator;
+/** @hidden */
+class AssetContainerIterable {
+    constructor(containers) {
+        this.containers = containers;
+        this[Symbol.iterator] = () => new AssetContainerIterator(this.containers);
+    }
+}
+exports.AssetContainerIterable = AssetContainerIterable;
+//# sourceMappingURL=assetIterator.js.map

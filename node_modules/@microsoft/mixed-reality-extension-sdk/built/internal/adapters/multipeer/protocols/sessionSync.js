@@ -1,0 +1,30 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+// break import cycle
+const protocols_1 = require("../../../protocols");
+/**
+ * @hidden
+ * Class to manage the synchronization phase when connecting to the app. There should be no state to synchronize
+ */
+class SessionSync extends protocols_1.Protocol {
+    constructor(session) {
+        super(session.conn);
+        /** @private */
+        this['recv-sync-complete'] = (payload) => {
+            this.resolve();
+        };
+        // Behave like a client-side endpoint (record latency, respond to heartbeats).
+        this.use(new protocols_1.ClientPreprocessing(this));
+    }
+    /** @override */
+    startListening() {
+        super.startListening();
+        this.sendPayload({ type: 'sync-request' });
+    }
+}
+exports.SessionSync = SessionSync;
+//# sourceMappingURL=sessionSync.js.map

@@ -1,0 +1,17 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Message, Session } from '../../../../internal';
+import { Middleware, Protocol } from '../../../protocols';
+/**
+ * @hidden
+ * Class for routing messages from the app over to the session
+ */
+export declare class SessionExecution extends Protocol implements Middleware {
+    private session;
+    constructor(session: Session);
+    /** @private */
+    beforeRecv: (message: Message<import("../../../payloads").Payload>) => Message<import("../../../payloads").Payload>;
+}
+//# sourceMappingURL=sessionExecution.d.ts.map

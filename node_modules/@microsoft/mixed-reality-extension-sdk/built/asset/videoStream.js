@@ -1,0 +1,64 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const assetInternal_1 = require("./assetInternal");
+// break import cycle
+const asset_1 = require("./asset");
+class VideoStream extends asset_1.Asset {
+    /** @hidden */
+    constructor(container, def) {
+        super(container, def);
+        this._duration = 0;
+        this._internal = new assetInternal_1.AssetInternal(this);
+        if (!def.videoStream) {
+            throw new Error("Cannot construct videoStream from non-videostream definition");
+        }
+        if (def.videoStream.uri) {
+            this._uri = def.videoStream.uri;
+        }
+        if (def.videoStream.duration) {
+            this._duration = def.videoStream.duration;
+        }
+    }
+    /** @hidden */
+    get internal() { return this._internal; }
+    /** The URI, if any, this videostream was loaded from */
+    get uri() { return this._uri; }
+    /** The length of the loaded videostream in seconds */
+    get duration() { return this._duration; }
+    /** @inheritdoc */
+    get videoStream() { return this; }
+    copy(from) {
+        if (!from) {
+            return this;
+        }
+        // Pause change detection while we copy the values into the actor.
+        const wasObserving = this.internal.observing;
+        this.internal.observing = false;
+        super.copy(from);
+        if (from.videoStream && from.videoStream.uri) {
+            this._uri = from.videoStream.uri;
+        }
+        if (from.videoStream && from.videoStream.duration !== undefined) {
+            this._duration = from.videoStream.duration;
+        }
+        this.internal.observing = wasObserving;
+        return this;
+    }
+    /** @hidden */
+    toJSON() {
+        return Object.assign(Object.assign({}, super.toJSON()), { videoStream: {
+                uri: this.uri,
+                duration: this.duration,
+            } });
+    }
+    /** @hidden */
+    breakReference(ref) {
+        // TODO: destroy all media instances
+    }
+}
+exports.VideoStream = VideoStream;
+//# sourceMappingURL=videoStream.js.map

@@ -1,0 +1,15 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Animation, AnimationLike } from '..';
+import { InternalPatchable } from '../internal';
+/** @hidden */
+export declare class AnimationInternal implements InternalPatchable<AnimationLike> {
+    animation: Animation;
+    observing: boolean;
+    patch: Partial<AnimationLike>;
+    constructor(animation: Animation);
+    getPatchAndReset(): Partial<AnimationLike>;
+}
+//# sourceMappingURL=animationInternal.d.ts.map

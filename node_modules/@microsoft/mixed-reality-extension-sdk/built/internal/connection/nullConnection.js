@@ -1,0 +1,47 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = require("events");
+const internal_1 = require("../../internal");
+/**
+ * @hidden
+ * A Connection that does performs nops for send and receive.
+ */
+class NullConnection extends events_1.EventEmitter {
+    constructor() {
+        super(...arguments);
+        this._quality = new internal_1.ConnectionQuality();
+    }
+    /** @inheritdoc */
+    get quality() { return this._quality; }
+    /** @inheritdoc */
+    get promises() { return null; }
+    /** @inheritdoc */
+    get statsReport() {
+        // null connections do not send or receive traffic
+        return {
+            networkBandwidthIn: [0, 0, 0],
+            networkBandwidthOut: [0, 0, 0],
+            networkMessageCount: [0, 0, 0]
+        };
+    }
+    // Bug in Node: EventEmitter doesn't alias this method
+    /** @inheritdoc */
+    off(event, listener) {
+        return this.removeListener(event, listener);
+    }
+    /** @inheritdoc */
+    close() {
+    }
+    /** @inheritdoc */
+    send(message, serializedMessage) {
+    }
+    /** @inheritdoc */
+    recv(message, serializedMessage) {
+    }
+}
+exports.NullConnection = NullConnection;
+//# sourceMappingURL=nullConnection.js.map

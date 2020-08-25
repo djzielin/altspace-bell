@@ -1,0 +1,15 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Vector3 } from '.';
+/** Defines the 3 main axes */
+export declare class Axis {
+    /** X axis */
+    static get X(): Vector3;
+    /** Y axis */
+    static get Y(): Vector3;
+    /** Z axis */
+    static get Z(): Vector3;
+}
+//# sourceMappingURL=axis.d.ts.map

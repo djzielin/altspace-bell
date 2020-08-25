@@ -1,0 +1,1 @@
+{"version":3,"file":"sync.d.ts","sourceRoot":"","sources":["../../../src/internal/payloads/sync.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,OAAO,EAAE,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAE1C,cAAc;AACd,oBAAY,eAAe,GAAG,iBAAiB,CAAC;AAEhD;;;GAGG;AACH,oBAAY,aAAa,GAAG,QAAQ,CAAC,iBAAiB,GAAG;IACxD,IAAI,EAAE,iBAAiB,CAAC;CACxB,CAAC"}

@@ -1,0 +1,25 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const v4_1 = __importDefault(require("uuid/v4"));
+/** Convert a string to a Guid */
+function parseGuid(val) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(val)) {
+        throw new Error(`Not a valid GUID: <${val}>`);
+    }
+    return val;
+}
+exports.parseGuid = parseGuid;
+function newGuid() {
+    return parseGuid(v4_1.default());
+}
+exports.newGuid = newGuid;
+exports.ZeroGuidString = '00000000-0000-0000-0000-000000000000';
+exports.ZeroGuid = parseGuid(exports.ZeroGuidString);
+//# sourceMappingURL=guid.js.map

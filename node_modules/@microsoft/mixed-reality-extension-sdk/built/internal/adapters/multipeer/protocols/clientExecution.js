@@ -1,0 +1,76 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("../../..");
+// break import cycle
+const protocols_1 = require("../../../protocols");
+/**
+ * @hidden
+ * Class for routing messages between the client and the session
+ */
+class ClientExecution extends protocols_1.Protocol {
+    constructor(client) {
+        super(client.conn);
+        this.client = client;
+        this.beforeRecv = (message) => {
+            if (this.promises.has(message.replyToId)) {
+                // If we have a queued promise for this message, let it through
+                return message;
+            }
+            else {
+                // Notify listeners we received a message.
+                this.emit('recv', message);
+                // Cancel the message
+                return undefined;
+            }
+        };
+        this.heartbeat = new protocols_1.Heartbeat(this);
+        this.beforeRecv = this.beforeRecv.bind(this);
+        // Behave like a server-side endpoint (send heartbeats, measure connection quality)
+        this.use(new protocols_1.ServerPreprocessing());
+        // Filter user-exclusive actors
+        this.use(new __1.ClientDesyncPreprocessor(client));
+        // Use middleware to pipe client messages to the session.
+        this.use(this);
+    }
+    /** @override */
+    get name() { return `${this.constructor.name} client ${this.client.id.substr(0, 8)}`; }
+    /** @override */
+    sendMessage(message, promise, timeoutSeconds, serializedMessage) {
+        // Apply timeout to messages going to the client.
+        const rule = __1.Rules[message.payload.type] || __1.MissingRule;
+        super.sendMessage(message, promise, rule.client.timeoutSeconds, serializedMessage);
+    }
+    startListening() {
+        super.startListening();
+        if (!this.heartbeatTimer) {
+            // Periodically measure connection latency.
+            this.heartbeatTimer = this.setHeartbeatTimer();
+        }
+    }
+    stopListening() {
+        clearTimeout(this.heartbeatTimer);
+        this.heartbeatTimer = undefined;
+        super.stopListening();
+    }
+    setHeartbeatTimer() {
+        return setTimeout(async () => {
+            if (this.heartbeatTimer) {
+                try {
+                    await this.heartbeat.send();
+                    this.heartbeatTimer = this.setHeartbeatTimer();
+                }
+                catch (_a) {
+                    this.client.leave();
+                    this.resolve();
+                }
+            }
+            // Irregular heartbeats are a good thing in this instance.
+        }, 1000 * (5 + 5 * Math.random()));
+    }
+}
+exports.ClientExecution = ClientExecution;
+//# sourceMappingURL=clientExecution.js.map

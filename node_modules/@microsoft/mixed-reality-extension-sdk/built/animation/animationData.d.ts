@@ -1,0 +1,70 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Animatible, Animation, AnimationLike, AnimationProp, AssetContainer, AssetLike, AssetUserType, EaseCurve, TargetPath } from '..';
+import { Like, Patchable } from '../internal';
+import { AssetInternal } from '../asset/assetInternal';
+import { Asset } from '../asset/asset';
+/** The value of an animation property at a moment in time */
+export declare type Keyframe<T extends AnimationProp> = {
+    /** The time in seconds from the start of the animation.  */
+    time: number;
+    /** The property's value at this instant, or a reference to another property. */
+    value: Like<T> | TargetPath<T>;
+    /** How the value approaches this frame's value. Defaults to the track's easing values. */
+    easing?: EaseCurve;
+};
+/** The timeline of values for an animation target property */
+export declare type Track<T extends AnimationProp> = {
+    /** A path to the property to animate */
+    target: TargetPath<T>;
+    /** The values to animate the target through */
+    keyframes: Array<Keyframe<T>>;
+    /** Whether the keyframe values are relative to 0 or to the target's current property value. Defaults to false. */
+    relative?: boolean;
+    /** Controls between-frame interpolation. Defaults to [[AnimationEaseCurves.Linear]]. */
+    easing?: EaseCurve;
+};
+/** Keyframe data for an animation */
+export interface AnimationDataLike {
+    /** The animation keyframe data */
+    tracks: Readonly<Array<Track<AnimationProp>>>;
+}
+export declare class AnimationData extends Asset implements AnimationDataLike, Patchable<AssetLike> {
+    private _internal;
+    get internal(): AssetInternal;
+    private _tracks;
+    /** @inheritdoc */
+    get tracks(): Track<AnimationProp>[];
+    /** @inheritdoc */
+    get animationData(): AnimationData;
+    /** @hidden */
+    constructor(container: AssetContainer, def: AssetLike);
+    /** The length of the animation data. */
+    duration(): number;
+    /** The placeholders and types of the animation's targets. */
+    targets(): any;
+    /**
+     * Bind this animation data to one or more targets to create an [[Animation]].
+     * @param targets A map of placeholder names to real objects. The names and types must match those in [[targets]].
+     * @param initialState Initial properties for the new animation.
+     * @throws [[MreValidationError]] If the provided `targets` argument does not exactly match in contents and types
+     * to what the data expects. See [[targets]].
+     */
+    bind(targets: {
+        [placeholder: string]: Animatible;
+    }, initialState?: Partial<AnimationLike>): Promise<Animation>;
+    /** @hidden */
+    copy(from: Partial<AssetLike>): this;
+    /** @hidden */
+    toJSON(): AssetLike;
+    /** @hidden */
+    breakReference(ref: AssetUserType): void;
+    /**
+     * Returns a list of problems with the data, or null if no problems.
+     * @hidden
+     */
+    static Validate(data: AnimationDataLike): string[];
+}
+//# sourceMappingURL=animationData.d.ts.map

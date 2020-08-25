@@ -1,0 +1,1 @@
+{"version":3,"file":"collisionEvent.d.ts","sourceRoot":"","sources":["../../../src/actor/physics/collisionEvent.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,OAAO,EAAE,aAAa,EAAE,kBAAkB,EAAE,IAAI,EAAE,MAAM,OAAO,CAAC;AAEhE;;GAEG;AACH,MAAM,WAAW,cAAc;IAC9B,eAAe,EAAE,IAAI,CAAC;IACtB,SAAS,EAAE,kBAAkB,CAAC;IAC9B,aAAa,EAAE,aAAa,CAAC;CAC7B"}

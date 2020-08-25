@@ -1,0 +1,34 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { BehaviorType, Guid } from '../../..';
+import { Message, Payloads } from '../../../internal';
+/** @hidden */
+export declare type InitializeActorMessage = Message<Payloads.CreateActorCommon | Payloads.ActorUpdate>;
+/**
+ * @hidden
+ */
+export declare type InitializeActor = {
+    message: InitializeActorMessage;
+};
+/**
+ * @hidden
+ */
+export declare type ActiveMediaInstance = {
+    message: Message<Payloads.SetMediaState>;
+    basisTime: number;
+    expirationTime: number;
+};
+/**
+ * @hidden
+ */
+export declare type SyncActor = {
+    actorId: Guid;
+    initialization: InitializeActor;
+    activeMediaInstances: ActiveMediaInstance[];
+    behavior: BehaviorType;
+    grabbedBy: Guid;
+    exclusiveToUser: Guid;
+};
+//# sourceMappingURL=syncActor.d.ts.map

@@ -1,0 +1,18 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { GroupMask } from './groupMask';
+/**
+ * A collection of user group IDs. Unlike in [[GroupMask]], users in these groups are **excluded** from this mask
+ * instead of included.
+ */
+export declare class InvertedGroupMask extends GroupMask {
+    /** @hidden */
+    packed(): number;
+    /** @hidden */
+    setPacked(value: number): void;
+    /** Convert this from a mask containing everything but these groups to a mask containing only these groups. */
+    invert(): GroupMask;
+}
+//# sourceMappingURL=invertedGroupMask.d.ts.map

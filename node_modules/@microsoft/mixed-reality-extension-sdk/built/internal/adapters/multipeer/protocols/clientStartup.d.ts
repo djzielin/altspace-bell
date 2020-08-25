@@ -1,0 +1,20 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Client, ExportedPromise, Message, Payloads } from '../../..';
+import { Protocol } from '../../../protocols';
+export declare class ClientStartup extends Protocol {
+    private client;
+    /** @override */
+    get name(): string;
+    constructor(client: Client, syncRequest: Payloads.SyncRequest);
+    /** @override */
+    sendMessage(message: Message, promise?: ExportedPromise, timeoutSeconds?: number): void;
+    /**
+     * @hidden
+     */
+    'recv-sync-request': (payload: Payloads.SyncRequest) => Promise<void>;
+    private performStartup;
+}
+//# sourceMappingURL=clientStartup.d.ts.map

@@ -1,0 +1,30 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { ActionEvent, Actor, ActorLike, Behavior, CollisionData, CollisionEventType, TriggerEventType } from '..';
+import { ExportedPromise, InternalPatchable } from '../internal';
+import { ColliderInternal } from './physics/colliderInternal';
+/**
+ * @hidden
+ */
+export declare class ActorInternal implements InternalPatchable<ActorLike> {
+    actor: Actor;
+    observing: boolean;
+    patch: ActorLike;
+    behavior: Behavior;
+    createdPromises: ExportedPromise[];
+    created: {
+        success: boolean;
+        reason?: any;
+    };
+    get collider(): ColliderInternal;
+    constructor(actor: Actor);
+    performAction(actionEvent: ActionEvent): void;
+    collisionEventRaised(collisionEventType: CollisionEventType, collisionData: CollisionData): void;
+    triggerEventRaised(triggerEventType: TriggerEventType, otherActor: Actor): void;
+    getPatchAndReset(): ActorLike;
+    notifyCreated(success: boolean, reason?: any): void;
+    enqueueCreatedPromise(promise: ExportedPromise): void;
+}
+//# sourceMappingURL=actorInternal.d.ts.map

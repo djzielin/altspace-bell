@@ -1,0 +1,87 @@
+/// <reference types="node" />
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { ActionEvent, Actor, ActorLike, Animation, AnimationLike, Asset, AssetContainer, BehaviorType, CollisionEvent, CollisionLayer, Context, Guid, MediaCommand, MediaInstance, PerformanceStats, SetMediaStateOptions, TriggerEvent, User, UserLike } from '..';
+import { ExportedPromise, Payloads, Protocols } from '../internal';
+import { PhysicsBridgeTransformUpdate, PhysicsUploadServerTransformsUpdate } from '../actor/physics/physicsBridge';
+/**
+ * @hidden
+ */
+export declare class ContextInternal {
+    context: Context;
+    actorSet: Map<Guid, Actor>;
+    userSet: Map<Guid, User>;
+    userGroupMapping: {
+        [id: string]: number;
+    };
+    assetContainers: Set<AssetContainer>;
+    animationSet: Map<Guid, Animation>;
+    protocol: Protocols.Protocol;
+    interval: NodeJS.Timer;
+    generation: number;
+    prevGeneration: number;
+    __rpc: any;
+    _rigidBodyOwnerMap: Map<Guid, Guid>;
+    _rigidBodyOrphanSet: Set<Guid>;
+    private _rigidBodyDefaultOwner;
+    constructor(context: Context);
+    onSetAuthoritative: (userId: Guid) => void;
+    Create(options?: {
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    CreateFromLibrary(options: {
+        resourceId: string;
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    CreateFromPrefab(options: {
+        prefabId: Guid;
+        collisionLayer?: CollisionLayer;
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    private createActorFromPayload;
+    CreateFromGltf(container: AssetContainer, options: {
+        uri: string;
+        colliderType?: 'box' | 'mesh';
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    createAnimationFromData(dataId: Guid, targets: {
+        [placeholder: string]: Guid;
+    }, initialState?: Partial<AnimationLike>): Promise<Animation>;
+    setMediaState(mediaInstance: MediaInstance, command: MediaCommand, options?: SetMediaStateOptions, mediaAssetId?: Guid): void;
+    startListening(): Promise<void>;
+    start(): void;
+    stop(): void;
+    incrementGeneration(): void;
+    private assetsIterable;
+    update(): void;
+    private nextUpdatePromise;
+    private resolveNextUpdatePromise;
+    /** @hidden */
+    nextUpdate(): Promise<void>;
+    sendDestroyActors(actorIds: Guid[]): void;
+    updateActors(sactors: Partial<ActorLike> | Array<Partial<ActorLike>>): void;
+    updatePhysicsBridgeTransforms(transforms: Partial<PhysicsBridgeTransformUpdate>): void;
+    updatePhysicsServerTransformsUpload(transforms: Partial<PhysicsUploadServerTransformsUpdate>): void;
+    updateAnimations(animPatches: Array<Partial<AnimationLike>>): void;
+    sendPayload(payload: Payloads.Payload, promise?: ExportedPromise): void;
+    sendPayloadAndGetReply<T extends Payloads.Payload, U extends Payloads.Payload>(payload: T): Promise<U>;
+    receiveRPC(payload: Payloads.EngineToAppRPC): void;
+    onClose: () => void;
+    userJoined(suser: Partial<UserLike>): void;
+    userLeft(userId: Guid): void;
+    updateUser(suser: Partial<UserLike>): void;
+    performAction(actionEvent: ActionEvent): void;
+    collisionEventRaised(collisionEvent: CollisionEvent): void;
+    triggerEventRaised(triggerEvent: TriggerEvent): void;
+    localDestroyActors(actorIds: Guid[]): void;
+    localDestroyActor(actor: Actor): void;
+    destroyActor(actorId: Guid): void;
+    destroyAnimation(animationId: Guid, cascadeIds?: Guid[]): void;
+    sendRigidBodyCommand(actorId: Guid, payload: Payloads.Payload): void;
+    setBehavior(actorId: Guid, newBehaviorType: BehaviorType): void;
+    lookupAsset(id: Guid): Asset;
+    getStats(): PerformanceStats;
+}
+//# sourceMappingURL=contextInternal.d.ts.map

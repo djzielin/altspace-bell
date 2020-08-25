@@ -1,0 +1,102 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Actor, Animation, AnimationData, AnimationDataLike, AssetContainer, Guid, Material, MaterialLike, Mesh, MeshLike, Prefab, PrefabLike, Sound, SoundLike, Texture, TextureLike, VideoStreamLike } from '..';
+/**
+ * Instructions for how to load an asset.
+ */
+export interface AssetSource {
+    /**
+     * The format of the asset container.
+     */
+    containerType: 'gltf' | 'library';
+    /**
+     * The URI at which the asset container can be found.
+     */
+    uri?: string;
+    /**
+     * A designator for which asset in the container this is. Format will be different for each container type.
+     * For example, a glTF's third material would have "materials/2" as its internalId.
+     */
+    internalId?: string;
+}
+export interface AssetLike {
+    /**
+     * The unique id of this asset. Use this to reference this asset in actors, etc.
+     */
+    id: Guid;
+    /**
+     * A human-readable string identifying the asset. Not required to be unique, but
+     * can be referenced by name if it is.
+     */
+    name?: string;
+    /**
+     * Where this asset came from. Used for loading on late-joining clients.
+     */
+    source?: AssetSource;
+    /** Only populated when this asset is animation data. An asset will only have one of these types specified. */
+    animationData?: Partial<AnimationDataLike>;
+    /** Only populated when this asset is a prefab. An asset will have only one of these types specified. */
+    prefab?: Partial<PrefabLike>;
+    /** Only populated when this asset is a mesh. An asset will have only one of these types specified. */
+    mesh?: Partial<MeshLike>;
+    /** Only populated when this asset is a material. An asset will have only one of these types specified. */
+    material?: Partial<MaterialLike>;
+    /** Only populated when this asset is a texture. An asset will have only one of these types specified. */
+    texture?: Partial<TextureLike>;
+    /** Only populated when this asset is a sound. An asset will have only one of these types specified. */
+    sound?: Partial<SoundLike>;
+    /** Only populated when this asset is a video stream. An asset will have only one of these types specified. */
+    videoStream?: Partial<VideoStreamLike>;
+}
+/** @hidden */
+export declare type AssetUserType = Actor | Animation | Asset;
+/** The base class for all asset types. */
+export declare abstract class Asset implements AssetLike {
+    container: AssetContainer;
+    private _id;
+    private _name;
+    private _source;
+    private _loadedPromise;
+    /** @inheritdoc */
+    get id(): Guid;
+    /** @inheritdoc */
+    get name(): string;
+    /** @inheritdoc */
+    get source(): AssetSource;
+    /** @inheritdoc */
+    get animationData(): AnimationData;
+    /** @inheritdoc */
+    get prefab(): Prefab;
+    /** @inheritdoc */
+    get mesh(): Mesh;
+    /** @inheritdoc */
+    get material(): Material;
+    /** @inheritdoc */
+    get texture(): Texture;
+    /** @inheritdoc */
+    get sound(): Sound;
+    /** A promise that resolves when the asset is finished loading */
+    get created(): Promise<void>;
+    /** Stores which actors/assets refer to this asset */
+    protected references: Set<AssetUserType>;
+    protected constructor(container: AssetContainer, def: Partial<AssetLike>);
+    /** @hidden */
+    addReference(ref: AssetUserType): void;
+    /** @hidden */
+    clearReference(ref: AssetUserType): void;
+    /** @hidden */
+    abstract breakReference(ref: AssetUserType): void;
+    /** @hidden */
+    breakAllReferences(): void;
+    /** @hidden */
+    setLoadedPromise(p: Promise<void>): void;
+    /** @hidden */
+    protected toJSON(): AssetLike;
+    /** @hidden */
+    copy(from: Partial<AssetLike>): this;
+    /** @hidden */
+    static Parse(container: AssetContainer, def: AssetLike): Asset;
+}
+//# sourceMappingURL=asset.d.ts.map

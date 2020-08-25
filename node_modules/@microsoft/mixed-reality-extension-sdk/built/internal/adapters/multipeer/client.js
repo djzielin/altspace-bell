@@ -1,0 +1,123 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = require("events");
+const __1 = require("../../..");
+const internal_1 = require("../../../internal");
+/**
+ * @hidden
+ * Class representing a connection to an engine client
+ */
+class Client extends events_1.EventEmitter {
+    /**
+     * Creates a new Client instance
+     */
+    constructor(_conn, _version) {
+        super();
+        this._conn = _conn;
+        this._version = _version;
+        this._queuedMessages = [];
+        this._userExclusiveMessages = [];
+        this._authoritative = false;
+        this._id = __1.newGuid();
+        this._order = Client.orderSequence++;
+        this._leave = this.leave.bind(this);
+        this._conn.on('close', this._leave);
+        this._conn.on('error', this._leave);
+    }
+    get id() { return this._id; }
+    get version() { return this._version; }
+    get order() { return this._order; }
+    get protocol() { return this._protocol; }
+    get session() { return this._session; }
+    get conn() { return this._conn; }
+    get authoritative() { return this._authoritative; }
+    get queuedMessages() { return this._queuedMessages; }
+    get userExclusiveMessages() { return this._userExclusiveMessages; }
+    setAuthoritative(value) {
+        this._authoritative = value;
+        this.protocol.sendPayload({
+            type: 'set-authoritative',
+            authoritative: value
+        });
+    }
+    /**
+     * Syncs state with the client
+     */
+    async join(session) {
+        try {
+            this._session = session;
+            // Sync state to the client
+            const sync = this._protocol = new internal_1.ClientSync(this);
+            await sync.run();
+            // Join the session as a user
+            const execution = this._protocol = new internal_1.ClientExecution(this);
+            execution.on('recv', (message) => this.emit('recv', this, message));
+            execution.startListening();
+        }
+        catch (e) {
+            __1.log.error('network', e);
+            this.leave();
+        }
+    }
+    leave() {
+        try {
+            if (this._protocol) {
+                this._protocol.stopListening();
+                this._protocol = undefined;
+            }
+            this._conn.off('close', this._leave);
+            this._conn.off('error', this._leave);
+            this._conn.close();
+            this._session = undefined;
+            this.emit('close');
+        }
+        catch (_a) { }
+    }
+    isJoined() {
+        return this.protocol && this.protocol.constructor.name === "ClientExecution";
+    }
+    send(message, promise, serializedMessage) {
+        if (this.protocol) {
+            this.protocol.sendMessage(message, promise, 0, serializedMessage);
+        }
+        else {
+            __1.log.error('network', `[ERROR] No protocol for message send: ${message.payload.type}`);
+        }
+    }
+    sendPayload(payload, promise) {
+        if (this.protocol) {
+            this.protocol.sendPayload(payload, promise);
+        }
+        else {
+            __1.log.error('network', `[ERROR] No protocol for payload send: ${payload.type}`);
+        }
+    }
+    queueMessage(message, promise, timeoutSeconds) {
+        const rule = internal_1.Rules[message.payload.type] || internal_1.MissingRule;
+        const beforeQueueMessageForClient = rule.client.beforeQueueMessageForClient || (() => message);
+        message = beforeQueueMessageForClient(this.session, this, message, promise);
+        if (message) {
+            __1.log.verbose('network', `Client ${this.id.substr(0, 8)} queue id:${message.id.substr(0, 8)}, type:${message.payload.type}`);
+            __1.log.verbose('network-content', JSON.stringify(message, (key, value) => internal_1.filterEmpty(value)));
+            this.queuedMessages.push({ message, promise, timeoutSeconds });
+        }
+    }
+    filterQueuedMessages(callbackfn) {
+        const filteredMessages = [];
+        this._queuedMessages = this._queuedMessages.filter((value) => {
+            const allow = callbackfn(value);
+            if (allow) {
+                filteredMessages.push(value);
+            }
+            return !allow;
+        });
+        return filteredMessages;
+    }
+}
+exports.Client = Client;
+Client.orderSequence = 0;
+//# sourceMappingURL=client.js.map

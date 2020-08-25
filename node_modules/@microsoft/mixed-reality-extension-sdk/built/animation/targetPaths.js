@@ -1,0 +1,67 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/* eslint-disable max-classes-per-file */
+Object.defineProperty(exports, "__esModule", { value: true });
+// break import cycle
+const animatible_1 = require("./animatible");
+/** A reference to a property on an object. Do not create these directly, but instead call [[ActorPath]]. */
+class TargetPath {
+    constructor(id) {
+        this.id = id;
+    }
+    toJSON() { return this.toString(); }
+    toString() { return this.id; }
+    get baseType() { var _a; return (_a = TargetPath.Parse(this.id)) === null || _a === void 0 ? void 0 : _a[0]; }
+    get baseName() { var _a; return (_a = TargetPath.Parse(this.id)) === null || _a === void 0 ? void 0 : _a[1]; }
+    /**
+     * Break a target path into semantic pieces.
+     * @param path The path string to parse.
+     * @returns An array containing the type string, the placeholder name, and the relative path, or null.
+     */
+    static Parse(path) {
+        const match = TargetPath.pathRe.exec(path);
+        if (match) {
+            return [match[1], match[2], match[3]];
+        }
+        else {
+            return null;
+        }
+    }
+}
+exports.TargetPath = TargetPath;
+TargetPath.pathRe = new RegExp(`^(${Object.values(animatible_1.AnimatibleName).join('|')}):([^/]+)/(.*)$`, 'ui');
+class NumberTargetPath extends TargetPath {
+}
+class Vector3TargetPath extends TargetPath {
+    get x() { return new NumberTargetPath(this.id + '/x'); }
+    get y() { return new NumberTargetPath(this.id + '/y'); }
+    get z() { return new NumberTargetPath(this.id + '/z'); }
+}
+class QuaternionTargetPath extends TargetPath {
+}
+class TransformTargetPath extends TargetPath {
+    get position() { return new Vector3TargetPath(this.id + '/position'); }
+    get rotation() { return new QuaternionTargetPath(this.id + '/rotation'); }
+}
+class ScaledTransformTargetPath extends TransformTargetPath {
+    get scale() { return new Vector3TargetPath(this.id + '/scale'); }
+}
+class ActorTransformTargetPath extends TargetPath {
+    get local() { return new ScaledTransformTargetPath(this.id + '/local'); }
+    get app() { return new TransformTargetPath(this.id + '/app'); }
+}
+class ActorTargetPath extends TargetPath {
+    get transform() { return new ActorTransformTargetPath(this.id + '/transform'); }
+}
+/**
+ * Create a reference to a generic actor's property
+ * @param placeholder The placeholder name of the targetable object that will be bound later.
+ */
+function ActorPath(placeholder) {
+    return new ActorTargetPath(`actor:${placeholder}`);
+}
+exports.ActorPath = ActorPath;
+//# sourceMappingURL=targetPaths.js.map

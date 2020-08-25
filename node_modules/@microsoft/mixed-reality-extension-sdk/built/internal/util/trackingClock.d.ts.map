@@ -1,0 +1,1 @@
+{"version":3,"file":"trackingClock.d.ts","sourceRoot":"","sources":["../../../src/internal/util/trackingClock.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH;;;GAGG;AACH,qBAAa,aAAa;IACzB,OAAO,CAAC,QAAQ,CAAK;IACrB,OAAO,CAAC,YAAY,CAAc;IAElC;;OAEG;IACH,IAAW,KAAK,WASf;IAED;;;OAGG;IACI,MAAM,CAAC,OAAO,EAAE,MAAM;CAM7B"}

@@ -1,0 +1,28 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/** Describes a relative position in a [[GridLayout]]. */
+export declare enum BoxAlignment {
+    /** Position above and to the left of the anchor. */
+    TopLeft = "top-left",
+    /** Position directly above the anchor. */
+    TopCenter = "top-center",
+    /** Position above and to the right of the anchor. */
+    TopRight = "top-right",
+    /** Position directly left of the anchor. */
+    MiddleLeft = "middle-left",
+    /** Position directly on top of the anchor. */
+    MiddleCenter = "middle-center",
+    /** Position directly right of the anchor. */
+    MiddleRight = "middle-right",
+    /** Position below and to the left of the anchor. */
+    BottomLeft = "bottom-left",
+    /** Position directly below the anchor. */
+    BottomCenter = "bottom-center",
+    /** Position below and to the right of the anchor. */
+    BottomRight = "bottom-right"
+}
+/** Invert a [[BoxAlignment]] value around the anchor (e.g. TopLeft to BottomRight). */
+export declare function InvertBoxAlignment(align: BoxAlignment): BoxAlignment;
+//# sourceMappingURL=boxAlignment.d.ts.map

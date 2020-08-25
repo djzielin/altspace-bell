@@ -1,0 +1,53 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { AssetContainer, AssetLike, AssetUserType, Vector2, Vector2Like } from '..';
+import { Patchable } from '../internal';
+import { AssetInternal } from './assetInternal';
+import { Asset } from './asset';
+export interface TextureLike {
+    uri: string;
+    resolution: Vector2Like;
+    wrapU: TextureWrapMode;
+    wrapV: TextureWrapMode;
+}
+/** How a material should interpret UV coordinates outside the [0,1) range. */
+export declare enum TextureWrapMode {
+    /** The texture is tiled for every 1 unit in the UVs. */
+    Repeat = "repeat",
+    /** The edge pixels of the texture are stretched out to the bounds of the UVs. */
+    Clamp = "clamp",
+    /** The texture is tiled and flipped for every 1 unit in the UVs. */
+    Mirror = "mirror"
+}
+export declare class Texture extends Asset implements TextureLike, Patchable<AssetLike> {
+    private _uri;
+    private _resolution;
+    private _wrapU;
+    private _wrapV;
+    private _internal;
+    /** @hidden */
+    get internal(): AssetInternal;
+    /** The URI, if any, this texture was loaded from */
+    get uri(): string;
+    /** The pixel dimensions of the loaded texture */
+    get resolution(): Vector2;
+    /** How overflowing UVs are handled horizontally. */
+    get wrapU(): TextureWrapMode;
+    set wrapU(val: TextureWrapMode);
+    /** How overflowing UVs are handled vertically. */
+    get wrapV(): TextureWrapMode;
+    set wrapV(val: TextureWrapMode);
+    /** @inheritdoc */
+    get texture(): Texture;
+    /** INTERNAL USE ONLY. To load a new texture from scratch, use [[AssetManager.createTexture]] */
+    constructor(container: AssetContainer, def: AssetLike);
+    copy(from: Partial<AssetLike>): this;
+    /** @hidden */
+    toJSON(): AssetLike;
+    private textureChanged;
+    /** @hidden */
+    breakReference(ref: AssetUserType): void;
+}
+//# sourceMappingURL=texture.d.ts.map

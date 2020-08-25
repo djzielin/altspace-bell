@@ -1,0 +1,40 @@
+declare const _exports: {
+    "$schema": string;
+    "type": string;
+    "properties": {
+        "name": {
+            "type": string;
+        };
+        "description": {
+            "type": string;
+        };
+        "author": {
+            "type": string;
+        };
+        "license": {
+            "description": string;
+            "type": string;
+        };
+        "repositoryUrl": {
+            "description": string;
+            "type": string;
+        };
+        "permissions": {
+            "description": string;
+            "type": string;
+            "items": {
+                "type": string;
+                "enum": string[];
+            };
+        };
+        "optionalPermissions": {
+            "description": string;
+            "type": string;
+            "items": {
+                "type": string;
+                "enum": string[];
+            };
+        };
+    };
+};
+export = _exports;

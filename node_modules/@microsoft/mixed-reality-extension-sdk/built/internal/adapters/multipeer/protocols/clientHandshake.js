@@ -1,0 +1,28 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("../../..");
+// break import cycle
+const protocols_1 = require("../../../protocols");
+/**
+ * @hidden
+ */
+class ClientHandshake extends protocols_1.Handshake {
+    constructor(client, sessionId) {
+        super(client.conn, sessionId, __1.OperatingModel.PeerAuthoritative);
+        this.client = client;
+    }
+    /** @override */
+    get name() { return `${this.constructor.name} client ${this.client.id.substr(0, 8)}`; }
+    /** @override */
+    sendMessage(message, promise, timeoutSeconds) {
+        // Apply timeout to messages going to the client.
+        const rule = __1.Rules[message.payload.type] || __1.MissingRule;
+        super.sendMessage(message, promise, rule.client.timeoutSeconds);
+    }
+}
+exports.ClientHandshake = ClientHandshake;
+//# sourceMappingURL=clientHandshake.js.map

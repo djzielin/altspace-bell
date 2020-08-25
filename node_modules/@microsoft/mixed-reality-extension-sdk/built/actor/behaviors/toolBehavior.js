@@ -1,0 +1,41 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const _1 = require(".");
+/**
+ * @hidden
+ */
+class ToolBehavior extends _1.TargetBehavior {
+    constructor() {
+        super(...arguments);
+        this._holding = new _1.DiscreteAction();
+        this._using = new _1.DiscreteAction();
+    }
+    /**
+     * Add a holding handler to be called when the given hover state is triggered.
+     * @param holdingState The holding state to fire the handler on.
+     * @param handler The handler to call when the holding state is triggered.
+     * @return This tool behavior.
+     */
+    onHolding(holdingState, handler) {
+        const actionState = (holdingState === 'picked-up') ? 'started' : (holdingState === 'holding') ? 'performing' : 'stopped';
+        this._holding.on(actionState, handler);
+        return this;
+    }
+    /**
+     * Add a using handler to be called when the given hover state is triggered.
+     * @param usingState The using state to fire the handler on.
+     * @param handler The handler to call when the using state is triggered.
+     * @return This tool behavior.
+     */
+    onUsing(usingState, handler) {
+        const actionState = (usingState === 'started') ? 'started' : (usingState === 'using') ? 'performing' : 'stopped';
+        this._using.on(actionState, handler);
+        return this;
+    }
+}
+exports.ToolBehavior = ToolBehavior;
+//# sourceMappingURL=toolBehavior.js.map

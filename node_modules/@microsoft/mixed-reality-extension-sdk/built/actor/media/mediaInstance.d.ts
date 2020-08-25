@@ -1,0 +1,37 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Actor, Guid, SetMediaStateOptions } from '../..';
+/**
+ * A MediaInstance represents an instance managing the playback of a sound or video stream,
+ * i.e. it plays an asset that was preloaded in an asset container
+ */
+export declare class MediaInstance {
+    id: Guid;
+    actor: Actor;
+    private mediaAssetId;
+    constructor(actor: Actor, mediaAssetId: Guid);
+    /**
+     * @hidden
+     */
+    start(options: SetMediaStateOptions): MediaInstance;
+    /**
+     * Updates the state of the active media
+     * @param options Adjustments to pitch and volume, and other characteristics.
+     */
+    setState(options: SetMediaStateOptions): void;
+    /**
+     * Pause the media playback
+     */
+    pause(): void;
+    /**
+     * Unpause the media playback
+     */
+    resume(): void;
+    /**
+     * Finish the media playback and destroy the instance.
+     */
+    stop(): void;
+}
+//# sourceMappingURL=mediaInstance.d.ts.map

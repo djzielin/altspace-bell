@@ -1,0 +1,73 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+/** Base class for classes that filter out users from MRE awareness */
+class UserFilter {
+    /**
+     * Set up the user filter
+     * @param context An MRE.Context object, or another user filter instance
+     */
+    constructor(context) {
+        this.context = context;
+        this.joinedCallbacks = new Set();
+        this.leftCallbacks = new Set();
+        /** The set of joined users, indexed by ID */
+        this.joinedUsers = new Map();
+        for (const u of context.users) {
+            if (this.shouldForwardUserEvent(u, 'joined')) {
+                this.joinedUsers.set(u.id, u);
+            }
+        }
+        this.context.onUserJoined(u => this.onUpstreamUserJoined(u));
+        this.context.onUserLeft(u => this.onUpstreamUserLeft(u));
+    }
+    /** The set of joined users */
+    get users() {
+        return [...this.joinedUsers.values()];
+    }
+    /** Register a callback that will be called when a user that passes the filter joins the MRE session */
+    onUserJoined(callback) {
+        this.joinedCallbacks.add(callback);
+    }
+    /** Deregister an [[onUserJoined]] callback */
+    offUserJoined(callback) {
+        this.joinedCallbacks.delete(callback);
+    }
+    /** Register a callback that will be called when a user that passes the filter leaves the MRE session */
+    onUserLeft(callback) {
+        this.leftCallbacks.add(callback);
+    }
+    /** Deregister an [[onUserLeft]] callback */
+    offUserLeft(callback) {
+        this.leftCallbacks.delete(callback);
+    }
+    /** Process an input event only from users that pass the filter */
+    filterInput(eventHandler) {
+        return (user, data) => {
+            if (this.shouldForwardUserEvent(user, 'input')) {
+                eventHandler(user, data);
+            }
+        };
+    }
+    onUpstreamUserJoined(user) {
+        if (this.shouldForwardUserEvent(user, 'joined')) {
+            this.joinedUsers.set(user.id, user);
+            for (const cb of this.joinedCallbacks) {
+                cb(user);
+            }
+        }
+    }
+    onUpstreamUserLeft(user) {
+        if (this.joinedUsers.has(user.id)) {
+            this.joinedUsers.delete(user.id);
+            for (const cb of this.leftCallbacks) {
+                cb(user);
+            }
+        }
+    }
+}
+exports.UserFilter = UserFilter;
+//# sourceMappingURL=userFilter.js.map

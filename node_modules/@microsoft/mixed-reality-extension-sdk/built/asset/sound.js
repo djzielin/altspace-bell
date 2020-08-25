@@ -1,0 +1,63 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("..");
+const assetInternal_1 = require("./assetInternal");
+// break import cycle
+const asset_1 = require("./asset");
+class Sound extends asset_1.Asset {
+    /** @hidden */
+    constructor(container, def) {
+        super(container, def);
+        this._duration = 0;
+        this._internal = new assetInternal_1.AssetInternal(this);
+        if (!def.sound) {
+            throw new Error("Cannot construct sound from non-sound definition");
+        }
+        this.copy(def);
+    }
+    /** @hidden */
+    get internal() { return this._internal; }
+    /** The URI, if any, this sound was loaded from */
+    get uri() { return this._uri; }
+    /** The length of the loaded sound in seconds at default pitch */
+    get duration() { return this._duration; }
+    /** @inheritdoc */
+    get sound() { return this; }
+    copy(from) {
+        if (!from) {
+            return this;
+        }
+        // Pause change detection while we copy the values into the actor.
+        const wasObserving = this.internal.observing;
+        this.internal.observing = false;
+        super.copy(from);
+        if (from.sound && from.sound.uri) {
+            this._uri = from.sound.uri;
+        }
+        if (from.sound && from.sound.duration !== undefined) {
+            this._duration = from.sound.duration;
+        }
+        this.internal.observing = wasObserving;
+        return this;
+    }
+    /** @hidden */
+    toJSON() {
+        return Object.assign(Object.assign({}, super.toJSON()), { sound: {
+                uri: this.uri,
+                duration: this.duration,
+            } });
+    }
+    /** @hidden */
+    breakReference(ref) {
+        if (!(ref instanceof __1.Actor)) {
+            return;
+        }
+        // TODO: Destroy all SoundInstances playing this Sound
+    }
+}
+exports.Sound = Sound;
+//# sourceMappingURL=sound.js.map

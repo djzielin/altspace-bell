@@ -1,0 +1,155 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+const __1 = require("..");
+const sumFn = (sum, x) => sum + x;
+const maxFn = (max, x) => Math.max(max, x);
+/**
+ * Lay out actors in a grid along the root actor's local XY plane. Assign actors to the grid with [[addCell]],
+ * and apply updates with [[applyLayout]].
+ */
+class PlanarGridLayout {
+    /**
+     * Initialize a new grid layout.
+     * @param anchor The grid's anchor actor, the point to which the grid is aligned.
+     * @param gridAlignment How the grid should be aligned to its anchor, where [[BoxAlignment.TopLeft]] will place
+     * the grid above and to the left of the anchor, and the lower right corner will touch the anchor.
+     * @param defaultCellAlignment How cells should be aligned by default.
+     */
+    constructor(anchor, gridAlignment = __1.BoxAlignment.MiddleCenter, defaultCellAlignment = __1.BoxAlignment.MiddleCenter) {
+        this.anchor = anchor;
+        this.gridAlignment = gridAlignment;
+        this.defaultCellAlignment = defaultCellAlignment;
+        this.contents = [];
+    }
+    /** The number of columns in this grid. */
+    getColumnCount() {
+        return this.contents.map(c => c.column).reduce(maxFn, -1) + 1;
+    }
+    /** The number of rows in this grid. */
+    getRowCount() {
+        return this.contents.map(c => c.row).reduce(maxFn, -1) + 1;
+    }
+    /** The width of the full grid. */
+    getGridWidth() {
+        const colCount = this.getColumnCount();
+        let width = 0;
+        for (let i = 0; i < colCount; i++) {
+            width += this.getColumnWidth(i);
+        }
+        return width;
+    }
+    /** The height of the full grid. */
+    getGridHeight() {
+        const rowCount = this.getRowCount();
+        let height = 0;
+        for (let i = 0; i < rowCount; i++) {
+            height += this.getRowHeight(i);
+        }
+        return height;
+    }
+    /**
+     * The width of a particular column.
+     * @param i The column index.
+     */
+    getColumnWidth(i) {
+        return this.contents.filter(c => c.column === i).map(c => c.width).reduce(maxFn, 0);
+    }
+    /**
+     * The height of a particular row.
+     * @param i The row index.
+     */
+    getRowHeight(i) {
+        return this.contents.filter(c => c.row === i).map(c => c.height).reduce(maxFn, 0);
+    }
+    /** The widths of every column. */
+    getColumnWidths() {
+        return this.contents.reduce((arr, c) => {
+            var _a;
+            arr[c.column] = Math.max((_a = arr[c.column], (_a !== null && _a !== void 0 ? _a : 0)), c.width);
+            return arr;
+        }, []);
+    }
+    /** The heights of every row. */
+    getRowHeights() {
+        return this.contents.reduce((arr, c) => {
+            var _a;
+            arr[c.row] = Math.max((_a = arr[c.row], (_a !== null && _a !== void 0 ? _a : 0)), c.height);
+            return arr;
+        }, []);
+    }
+    /**
+     * Add an actor to the grid. The actor's position will not be updated until [[applyLayout]] is called.
+     * @param options The cell's configuration.
+     */
+    addCell(options) {
+        const { contents } = options;
+        if (contents.parent !== this.anchor) {
+            throw new Error("Grid cell contents must be parented to the grid root");
+        }
+        // insert cell
+        this.contents.push(options);
+    }
+    /** Recompute the positions of all actors in the grid. */
+    applyLayout(animateDuration = 0, animateCurve = __1.AnimationEaseCurves.EaseOutQuadratic) {
+        var _a;
+        const colWidths = this.getColumnWidths();
+        const rowHeights = this.getRowHeights();
+        const gridAlign = PlanarGridLayout.getOffsetFromAlignment(__1.InvertBoxAlignment(this.gridAlignment), colWidths.reduce(sumFn, 0), rowHeights.reduce(sumFn, 0))
+            .negate();
+        for (const cell of this.contents) {
+            const cellPosition = new __1.Vector3(colWidths.slice(0, cell.column).reduce(sumFn, 0), -rowHeights.slice(0, cell.row).reduce(sumFn, 0), cell.contents.transform.local.position.z);
+            const cellAlign = PlanarGridLayout.getOffsetFromAlignment((_a = cell.alignment, (_a !== null && _a !== void 0 ? _a : this.defaultCellAlignment)), colWidths[cell.column], rowHeights[cell.row]);
+            const destination = gridAlign.add(cellPosition).add(cellAlign);
+            if (animateDuration > 0) {
+                __1.Animation.AnimateTo(cell.contents.context, cell.contents, {
+                    destination: { transform: { local: { position: destination } } },
+                    duration: animateDuration,
+                    easing: animateCurve
+                });
+            }
+            else {
+                cell.contents.transform.local.position = destination;
+            }
+        }
+    }
+    static getOffsetFromAlignment(anchor, width, height) {
+        const offset = new __1.Vector3();
+        // set horizontal alignment
+        switch (anchor) {
+            case __1.BoxAlignment.TopRight:
+            case __1.BoxAlignment.MiddleRight:
+            case __1.BoxAlignment.BottomRight:
+                offset.x = 1;
+                break;
+            case __1.BoxAlignment.TopCenter:
+            case __1.BoxAlignment.MiddleCenter:
+            case __1.BoxAlignment.BottomCenter:
+                offset.x = 0.5;
+                break;
+            default:
+                offset.x = 0;
+        }
+        // set vertical alignment
+        switch (anchor) {
+            case __1.BoxAlignment.BottomLeft:
+            case __1.BoxAlignment.BottomCenter:
+            case __1.BoxAlignment.BottomRight:
+                offset.y = -1;
+                break;
+            case __1.BoxAlignment.MiddleLeft:
+            case __1.BoxAlignment.MiddleCenter:
+            case __1.BoxAlignment.MiddleRight:
+                offset.y = -0.5;
+                break;
+            default:
+                offset.y = 0;
+        }
+        return offset.multiplyByFloats(width, height, 1);
+    }
+}
+exports.PlanarGridLayout = PlanarGridLayout;
+//# sourceMappingURL=planarGridLayout.js.map

@@ -1,0 +1,348 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/// <reference types="node" />
+import events from 'events';
+import { ActionHandler, ActorTransform, ActorTransformLike, Animation, Appearance, AppearanceLike, Asset, AssetContainer, Attachment, AttachmentLike, AttachPoint, Behavior, Collider, ColliderLike, ColliderType, CollisionLayer, Context, Guid, Light, LightLike, LookAt, LookAtLike, LookAtMode, MediaInstance, Prefab, PrimitiveDefinition, ReadonlyMap, RigidBody, RigidBodyLike, SetAudioStateOptions, SetVideoStateOptions, Text, TextLike, User, Vector3Like } from '..';
+import { Patchable, SubscriptionType } from '../internal';
+import { ActorInternal } from './actorInternal';
+/**
+ * Describes the properties of an Actor.
+ */
+export interface ActorLike {
+    id: Guid;
+    parentId: Guid;
+    name: string;
+    tag: string;
+    /**
+     * When supplied, this actor will be unsynchronized, and only exist on the client
+     * of the User with the given ID. This value can only be set at actor creation.
+     * Any actors parented to this actor will also be exclusive to the given user.
+     */
+    exclusiveToUser: Guid;
+    owner: Guid;
+    subscriptions: SubscriptionType[];
+    transform: Partial<ActorTransformLike>;
+    appearance: Partial<AppearanceLike>;
+    light: Partial<LightLike>;
+    rigidBody: Partial<RigidBodyLike>;
+    collider: Partial<ColliderLike>;
+    text: Partial<TextLike>;
+    attachment: Partial<AttachmentLike>;
+    lookAt: Partial<LookAtLike>;
+    grabbable: boolean;
+}
+/**
+ * An actor represents an object instantiated on the host.
+ */
+export declare class Actor implements ActorLike, Patchable<ActorLike> {
+    private _context;
+    private _id;
+    private _internal;
+    /** @hidden */
+    get internal(): ActorInternal;
+    private _emitter;
+    /** @hidden */
+    get emitter(): events.EventEmitter;
+    private _name;
+    private _tag;
+    private _exclusiveToUser;
+    private _owner;
+    private _parentId;
+    private _subscriptions;
+    private _transform;
+    private _appearance;
+    private _light;
+    private _rigidBody;
+    private _collider;
+    private _text;
+    private _attachment;
+    private _lookAt;
+    private _grabbable;
+    private _grab;
+    private get grab();
+    get context(): Context;
+    get id(): Guid;
+    get name(): string;
+    get tag(): string;
+    set tag(value: string);
+    /** @inheritdoc */
+    get exclusiveToUser(): Guid;
+    get owner(): Guid;
+    set owner(value: Guid);
+    get subscriptions(): SubscriptionType[];
+    get transform(): ActorTransform;
+    set transform(value: ActorTransform);
+    get appearance(): Appearance;
+    set appearance(value: Appearance);
+    get light(): Light;
+    get rigidBody(): RigidBody;
+    get collider(): Collider;
+    get text(): Text;
+    get attachment(): Attachment;
+    get lookAt(): LookAt;
+    get children(): Actor[];
+    get parent(): Actor;
+    set parent(value: Actor);
+    get parentId(): Guid;
+    set parentId(value: Guid);
+    get grabbable(): boolean;
+    set grabbable(value: boolean);
+    private constructor();
+    /**
+     * @hidden
+     * TODO - get rid of this.
+     */
+    static alloc(context: Context, id: Guid): Actor;
+    /**
+     * PUBLIC METHODS
+     */
+    /**
+     * Creates a new, empty actor without geometry.
+     * @param context The SDK context object.
+     * @param options.actor The initial state of the actor.
+     */
+    static Create(context: Context, options?: {
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    /**
+     * @deprecated
+     * Use [[Actor.Create]] instead.
+     */
+    static CreateEmpty(context: Context, options?: {
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    /**
+     * Creates a new actor from a library resource, which is host-dependent.
+     * For AltspaceVR, the available resource ID formats are:
+     * * `teleporter:event/<event_id>[?label=true]`, with an Altspace event ID, which you can get from the URL of an
+     *     event's page on https://account.altvr.com.
+     * * `teleporter:space/<space_id>[?label=true]`
+     * * `teleporter:<event_or_space_id>[?label=true]`
+     * * `artifact:<artifact_id>`, with an Altspace artifact ID from https://account.altvr.com/kits.
+     * @param context The SDK context object.
+     * @param options.resourceId The id of the library resource to instantiate.
+     * @param options.actor The initial state of the root actor.
+     */
+    static CreateFromLibrary(context: Context, options: {
+        resourceId: string;
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    /**
+     * Creates a new actor hierarchy from the provided prefab.
+     * @param context The SDK context object.
+     * @param options.prefabId The ID of a prefab asset to spawn.
+     * @param options.collisionLayer If the prefab contains colliders, put them on this layer.
+     * @param options.actor The initial state of the root actor.
+     */
+    static CreateFromPrefab(context: Context, options: {
+        prefabId: Guid;
+        collisionLayer?: CollisionLayer;
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    /**
+     * Creates a new actor hierarchy from the provided prefab.
+     * @param context The SDK context object.
+     * @param options.prefab The prefab asset to spawn.
+     * @param options.collisionLayer If the prefab contains colliders, put them on this layer.
+     * @param options.actor The initial state of the root actor.
+     */
+    static CreateFromPrefab(context: Context, options: {
+        prefab: Prefab;
+        collisionLayer?: CollisionLayer;
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    /**
+     * Creates a new actor hierarchy from the provided prefab.
+     * @param context The SDK context object.
+     * @param options.firstPrefabFrom An asset array containing at least one prefab.
+     * @param options.collisionLayer If the prefab contains colliders, put them on this layer.
+     * @param options.actor The initial state of the root actor.
+     */
+    static CreateFromPrefab(context: Context, options: {
+        firstPrefabFrom: Asset[];
+        collisionLayer?: CollisionLayer;
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    /**
+     * Load a glTF model, and spawn the first prefab in the resulting assets. Equivalent
+     * to using [[AssetContainer.loadGltf]] and [[Actor.CreateFromPrefab]].
+     * @param container The asset container to load the glTF assets into
+     * @param options.uri A URI to a .gltf or .glb file
+     * @param options.colliderType The type of collider to add to each mesh actor
+     * @param options.actor The initial state of the actor
+     */
+    static CreateFromGltf(container: AssetContainer, options: {
+        uri: string;
+        colliderType?: 'box' | 'mesh';
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    /**
+     * Create an actor with a newly generated mesh. Equivalent to using
+     * [[AssetContainer.createPrimitiveMesh]] and adding the result to [[Actor.Create]].
+     * @param container The asset container to load the mesh into
+     * @param options.definition The primitive shape and size
+     * @param options.addCollider Add an auto-typed collider to the actor
+     * @param options.actor The initial state of the actor
+     */
+    static CreatePrimitive(container: AssetContainer, options: {
+        definition: PrimitiveDefinition;
+        addCollider?: boolean;
+        actor?: Partial<ActorLike>;
+    }): Actor;
+    /**
+     * Creates a Promise that will resolve once the actor is created on the host.
+     * @returns Promise<void>
+     */
+    created(): Promise<void>;
+    /**
+     * Destroys the actor.
+     */
+    destroy(): void;
+    /**
+     * Adds a light component to the actor.
+     * @param light Light characteristics.
+     */
+    enableLight(light?: Partial<LightLike>): void;
+    /**
+     * Adds a rigid body component to the actor.
+     * @param rigidBody Rigid body characteristics.
+     */
+    enableRigidBody(rigidBody?: Partial<RigidBodyLike>): void;
+    /**
+     * Adds a collider of the given type and parameters on the actor.
+     * @param colliderType Type of the collider to enable.
+     * @param isTrigger Whether the collider is a trigger volume or not.
+     * @param radius The radius of the collider. If omitted, a best-guess radius is chosen
+     * based on the size of the currently assigned mesh (loading meshes are not considered).
+     * If no mesh is assigned, defaults to 0.5.
+     * @param center The center of the collider, or default of the object if none is provided.
+     */
+    setCollider(colliderType: ColliderType.Sphere, isTrigger: boolean, radius?: number, center?: Vector3Like): void;
+    /**
+     * Adds a collider of the given type and parameters on the actor.
+     * @param colliderType Type of the collider to enable.
+     * @param isTrigger Whether the collider is a trigger volume or not.
+     * @param size The dimensions of the collider. If omitted, a best-guess size is chosen
+     * based on the currently assigned mesh (loading meshes are not considered).
+     * If no mesh is assigned, defaults to (1,1,1).
+     * @param center The center of the collider, or default of the object if none is provided.
+     */
+    setCollider(colliderType: ColliderType.Box, isTrigger: boolean, size?: Vector3Like, center?: Vector3Like): void;
+    /**
+     * Adds a collider of the give type and parameters on the actor.
+     * @param colliderType Type of the collider to enable.
+     * @param isTrigger Whether the collider is a trigger volume or not.
+     * @param size The dimensions of the collider, with the largest component of the vector
+     * being the primary axis and height of the capsule (including end caps), and the smallest the diameter.
+     * If omitted, a best-guess size is chosen based on the currently assigned mesh
+     * (loading meshes are not considered). If no mesh is assigned, defaults to (1, 1, 1).
+     * @param center The center of the collider, or default of the object if none is provided.
+     */
+    setCollider(colliderType: ColliderType.Capsule, isTrigger: boolean, size?: Vector3Like, center?: Vector3Like): void;
+    /**
+     * Adds a collider whose shape is determined by the current mesh.
+     * @param colliderType Type of the collider to enable.
+     * @param isTrigger Whether the collider is a trigger volume or not.
+     */
+    setCollider(colliderType: ColliderType.Auto, isTrigger: boolean): void;
+    /**
+     * Adds a text component to the actor.
+     * @param text Text characteristics
+     */
+    enableText(text?: Partial<TextLike>): void;
+    /**
+     * Instruct the actor to face another object, or stop facing an object.
+     * @param actorOrActorId The Actor or id of the actor to face.
+     * @param lookAtMode (Optional) How to face the target. @see LookUpMode.
+     * @param backward (Optional) If true, actor faces away from target rather than toward.
+     */
+    enableLookAt(actorOrActorId: Actor | Guid, mode?: LookAtMode, backward?: boolean): void;
+    /**
+     * Attach to the user at the given attach point.
+     * @param userOrUserId The User or id of user to attach to.
+     * @param attachPoint Where on the user to attach.
+     */
+    attach(userOrUserId: User | Guid, attachPoint: AttachPoint): void;
+    /**
+     * If attached to a user, detach from it.
+     */
+    detach(): void;
+    /**
+     * Subscribe to updates from this actor.
+     * @param subscription The type of subscription to add.
+     */
+    subscribe(subscription: SubscriptionType): void;
+    /**
+     * Unsubscribe from updates from this actor.
+     * @param subscription The type of subscription to remove.
+     */
+    unsubscribe(subscription: SubscriptionType): void;
+    /**
+     * Add a grad handler to be called when the given action state has changed.
+     * @param grabState The grab state to fire the handler on.
+     * @param handler The handler to call when the grab state has changed.
+     */
+    onGrab(grabState: 'begin' | 'end', handler: ActionHandler): void;
+    /**
+     * Sets the behavior on this actor.
+     * @param behavior The type of behavior to set. Pass null to clear the behavior.
+     */
+    setBehavior<BehaviorT extends Behavior>(behavior: {
+        new (): BehaviorT;
+    }): BehaviorT;
+    /**
+     * Starts playing a preloaded sound.
+     * @param soundAssetId Name of sound asset preloaded using AssetManager.
+     * @param options Adjustments to pitch and volume, and other characteristics.
+     */
+    startSound(soundAssetId: Guid, options: SetAudioStateOptions): MediaInstance;
+    /**
+     * Starts playing a preloaded video stream.
+     * @param videoStreamAssetId Name of video stream asset preloaded using AssetManager.
+     * @param options Adjustments to pitch and volume, and other characteristics.
+     */
+    startVideoStream(videoStreamAssetId: Guid, options: SetVideoStateOptions): MediaInstance;
+    /**
+     * @deprecated
+     * Use [[Animation.AnimateTo]] instead.
+     * @param value The desired final state of the actor.
+     * @param duration The length of the interpolation (in seconds).
+     * @param curve The cubic-bezier curve parameters. @see AnimationEaseCurves for predefined values.
+     */
+    animateTo(value: Partial<ActorLike>, duration: number, curve: number[]): Promise<void>;
+    /**
+     * Finds child actors matching `name`.
+     * @param name The name of the actors to find.
+     * @param recurse Whether or not to search recursively.
+     */
+    findChildrenByName(name: string, recurse: boolean): Actor[];
+    /** The list of animations that target this actor, by ID. */
+    get targetingAnimations(): ReadonlyMap<Guid, Animation>;
+    /** The list of animations that target this actor, by name. */
+    get targetingAnimationsByName(): ReadonlyMap<string, Animation>;
+    /** Recursively search for the named animation from this actor. */
+    findAnimationInChildrenByName(name: string): Animation;
+    /** @hidden */
+    copy(from: Partial<ActorLike>): this;
+    /** @hidden */
+    toJSON(): ActorLike;
+    /**
+     * INTERNAL METHODS
+     */
+    /**
+     * Prepare outgoing messages
+     * @hidden
+     */
+    static sanitize(msg: ActorLike): ActorLike;
+    static sanitize(msg: Partial<ActorLike>): Partial<ActorLike>;
+    /** @hidden */
+    actorChanged: (...path: string[]) => void;
+    /**
+     * PRIVATE METHODS
+     */
+    private generateColliderGeometry;
+    private _setCollider;
+}
+//# sourceMappingURL=actor.d.ts.map

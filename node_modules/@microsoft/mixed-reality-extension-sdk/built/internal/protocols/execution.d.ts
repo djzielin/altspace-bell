@@ -1,0 +1,52 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Context } from '../..';
+import { Message, Payloads } from '../../internal';
+import { Protocol } from './protocol';
+/**
+ * @hidden
+ * Class to handle operational messages with a client.
+ */
+export declare class Execution extends Protocol {
+    private context;
+    constructor(context: Context);
+    /** @override */
+    protected missingPromiseForReplyMessage(message: Message): void;
+    /** @private */
+    'recv-engine2app-rpc': (payload: Payloads.EngineToAppRPC) => void;
+    /** @private */
+    'recv-object-spawned': (payload: Payloads.ObjectSpawned) => void;
+    /** @private */
+    'recv-actor-update': (payload: Payloads.ActorUpdate) => void;
+    /** @private */
+    'recv-destroy-actors': (payload: Payloads.DestroyActors) => void;
+    /** @private */
+    'recv-operation-result': (operationResult: Payloads.OperationResult) => void;
+    /** @private */
+    'recv-multi-operation-result': (multiOperationResult: Payloads.MultiOperationResult) => never;
+    /** @private */
+    'recv-traces': (payload: Payloads.Traces) => void;
+    /** @private */
+    'recv-user-joined': (payload: Payloads.UserJoined) => void;
+    /** @private */
+    'recv-user-left': (payload: Payloads.UserLeft) => void;
+    /** @private */
+    'recv-user-update': (payload: Payloads.UserUpdate) => void;
+    /** @private */
+    'recv-sync-request': (payload: Payloads.SyncRequest) => Promise<void>;
+    /** @private */
+    'recv-perform-action': (payload: Payloads.PerformAction) => void;
+    /** @private */
+    'recv-physicsbridge-transforms-update': (payload: Payloads.PhysicsBridgeUpdate) => void;
+    /** @private */
+    'recv-physicsbridge-server-transforms-upload': (payload: Payloads.PhysicsUploadServerUpdate) => void;
+    /** @private */
+    'recv-collision-event-raised': (payload: Payloads.CollisionEventRaised) => void;
+    /** @private */
+    'recv-trigger-event-raised': (payload: Payloads.TriggerEventRaised) => void;
+    /** @private */
+    'recv-animation-update': (payload: Payloads.AnimationUpdate) => void;
+}
+//# sourceMappingURL=execution.d.ts.map

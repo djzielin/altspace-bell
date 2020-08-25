@@ -1,0 +1,21 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { DialogResponse, User, UserLike } from '..';
+import { InternalPatchable } from '../internal';
+import { ContextInternal } from '../core/contextInternal';
+/**
+ * @hidden
+ */
+export declare class UserInternal implements InternalPatchable<UserLike> {
+    user: User;
+    context: ContextInternal;
+    __rpc: any;
+    observing: boolean;
+    patch: UserLike;
+    constructor(user: User, context: ContextInternal);
+    getPatchAndReset(): UserLike;
+    prompt(text: string, acceptInput: boolean): Promise<DialogResponse>;
+}
+//# sourceMappingURL=userInternal.d.ts.map

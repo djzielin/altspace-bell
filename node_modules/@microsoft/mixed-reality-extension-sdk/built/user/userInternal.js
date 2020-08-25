@@ -1,0 +1,55 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("..");
+/**
+ * @hidden
+ */
+class UserInternal {
+    constructor(user, context) {
+        this.user = user;
+        this.context = context;
+        this.observing = true;
+    }
+    getPatchAndReset() {
+        const patch = this.patch;
+        if (patch) {
+            patch.id = this.user.id;
+            delete this.patch;
+        }
+        return patch;
+    }
+    prompt(text, acceptInput) {
+        const payload = {
+            type: 'show-dialog',
+            userId: this.user.id,
+            text,
+            acceptInput
+        };
+        return new Promise((resolve, reject) => {
+            if (this.user.grantedPermissions.includes(__1.Permissions.UserInteraction)) {
+                this.context.sendPayload(payload, { resolve, reject });
+            }
+            else {
+                reject(`Permission denied on user ${this.user.id} (${this.user.name}). Either this MRE did not ` +
+                    "request the UserInteraction permission, or it was denied by the user.");
+            }
+        })
+            .then(response => {
+            if (response.failureMessage) {
+                return Promise.reject(response.failureMessage);
+            }
+            else {
+                return Promise.resolve({
+                    submitted: response.submitted,
+                    text: response.text
+                });
+            }
+        });
+    }
+}
+exports.UserInternal = UserInternal;
+//# sourceMappingURL=userInternal.js.map

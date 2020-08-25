@@ -1,0 +1,26 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/// <reference types="node" />
+import { Client, ExportedPromise, Message } from '../../..';
+import { Middleware, Protocol } from '../../../protocols';
+/**
+ * @hidden
+ * Class for routing messages between the client and the session
+ */
+export declare class ClientExecution extends Protocol implements Middleware {
+    private client;
+    private heartbeat;
+    private heartbeatTimer;
+    /** @override */
+    get name(): string;
+    constructor(client: Client);
+    /** @override */
+    sendMessage(message: Message, promise?: ExportedPromise, timeoutSeconds?: number, serializedMessage?: Buffer): void;
+    startListening(): void;
+    stopListening(): void;
+    private setHeartbeatTimer;
+    beforeRecv: (message: Message<import("../../../payloads").Payload>) => Message<import("../../../payloads").Payload>;
+}
+//# sourceMappingURL=clientExecution.d.ts.map

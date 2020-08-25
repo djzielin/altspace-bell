@@ -1,0 +1,54 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Color3, Color4, Quaternion, Vector2, Vector3 } from '..';
+import { AnimatibleName } from './animatible';
+/** The types that are acceptable targets of animations. */
+export declare type AnimationProp = Vector2 | Vector3 | Quaternion | Color3 | Color4 | number | string | boolean;
+/** A reference to a property on an object. Do not create these directly, but instead call [[ActorPath]]. */
+export declare abstract class TargetPath<T extends AnimationProp> {
+    protected id: string;
+    constructor(id: string);
+    toJSON(): string;
+    toString(): string;
+    get baseType(): AnimatibleName;
+    get baseName(): string;
+    private static pathRe;
+    /**
+     * Break a target path into semantic pieces.
+     * @param path The path string to parse.
+     * @returns An array containing the type string, the placeholder name, and the relative path, or null.
+     */
+    static Parse(path: string): [AnimatibleName, string, string];
+}
+declare class NumberTargetPath extends TargetPath<number> {
+}
+declare class Vector3TargetPath extends TargetPath<Vector3> {
+    get x(): NumberTargetPath;
+    get y(): NumberTargetPath;
+    get z(): NumberTargetPath;
+}
+declare class QuaternionTargetPath extends TargetPath<Quaternion> {
+}
+declare class TransformTargetPath extends TargetPath<never> {
+    get position(): Vector3TargetPath;
+    get rotation(): QuaternionTargetPath;
+}
+declare class ScaledTransformTargetPath extends TransformTargetPath {
+    get scale(): Vector3TargetPath;
+}
+declare class ActorTransformTargetPath extends TargetPath<never> {
+    get local(): ScaledTransformTargetPath;
+    get app(): TransformTargetPath;
+}
+declare class ActorTargetPath extends TargetPath<never> {
+    get transform(): ActorTransformTargetPath;
+}
+/**
+ * Create a reference to a generic actor's property
+ * @param placeholder The placeholder name of the targetable object that will be bound later.
+ */
+export declare function ActorPath(placeholder: string): ActorTargetPath;
+export {};
+//# sourceMappingURL=targetPaths.d.ts.map

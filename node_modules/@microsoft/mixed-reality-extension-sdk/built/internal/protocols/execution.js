@@ -1,0 +1,131 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("../..");
+const internal_1 = require("../../internal");
+// break import cycle
+const protocol_1 = require("./protocol");
+const serverPreprocessing_1 = require("./serverPreprocessing");
+const sync_1 = require("./sync");
+/**
+ * @hidden
+ * Class to handle operational messages with a client.
+ */
+class Execution extends protocol_1.Protocol {
+    constructor(context) {
+        super(context.conn);
+        this.context = context;
+        /** @private */
+        this['recv-engine2app-rpc'] = (payload) => {
+            this.emit('protocol.receive-rpc', payload);
+        };
+        /** @private */
+        this['recv-object-spawned'] = (payload) => {
+            this.emit('protocol.update-actors', payload.actors);
+            this.emit('protocol.update-animations', payload.animations);
+        };
+        /** @private */
+        this['recv-actor-update'] = (payload) => {
+            this.emit('protocol.update-actors', [payload.actor]);
+        };
+        /** @private */
+        this['recv-destroy-actors'] = (payload) => {
+            this.emit('protocol.destroy-actors', payload.actorIds);
+        };
+        /** @private */
+        this['recv-operation-result'] = (operationResult) => {
+            __1.log.log('network', operationResult.resultCode, operationResult.message);
+            if (Array.isArray(operationResult.traces)) {
+                operationResult.traces.forEach(trace => {
+                    __1.log.log('network', trace.severity, trace.message);
+                });
+            }
+        };
+        /** @private */
+        this['recv-multi-operation-result'] = (multiOperationResult) => {
+            throw new Error("Not implemented");
+        };
+        /** @private */
+        this['recv-traces'] = (payload) => {
+            payload.traces.forEach(trace => {
+                __1.log.log('client', trace.severity, trace.message);
+            });
+        };
+        /** @private */
+        this['recv-user-joined'] = (payload) => {
+            const props = payload.user.properties = payload.user.properties || {};
+            props.host = props.host || 'unspecified';
+            props.engine = props.engine || 'unspecified';
+            if (this.conn instanceof internal_1.WebSocket && !props.remoteAddress) {
+                props.remoteAddress = this.conn.remoteAddress;
+            }
+            this.emit('protocol.user-joined', payload.user);
+        };
+        /** @private */
+        this['recv-user-left'] = (payload) => {
+            this.emit('protocol.user-left', payload.userId);
+        };
+        /** @private */
+        this['recv-user-update'] = (payload) => {
+            this.emit('protocol.update-user', payload.user);
+        };
+        /** @private */
+        this['recv-sync-request'] = async (payload) => {
+            // Switch over to the Sync protocol to handle this request
+            this.stopListening();
+            const sync = new sync_1.Sync(this.conn);
+            await sync.run(); // Allow exception to propagate.
+            this.startListening();
+        };
+        /** @private */
+        this['recv-perform-action'] = (payload) => {
+            this.emit('protocol.perform-action', {
+                user: this.context.user(payload.userId),
+                targetId: payload.targetId,
+                behaviorType: payload.behaviorType,
+                actionName: payload.actionName,
+                actionState: payload.actionState,
+                actionData: payload.actionData,
+            });
+        };
+        /** @private */
+        this['recv-physicsbridge-transforms-update'] = (payload) => {
+            this.emit('protocol.physicsbridge-update-transforms', [payload.transforms]);
+        };
+        /** @private */
+        this['recv-physicsbridge-server-transforms-upload'] = (payload) => {
+            this.emit('protocol.physicsbridge-server-transforms-upload', [payload.physicsTranformServer]);
+        };
+        /** @private */
+        this['recv-collision-event-raised'] = (payload) => {
+            this.emit('protocol.collision-event-raised', {
+                colliderOwnerId: payload.actorId,
+                eventType: payload.eventType,
+                collisionData: payload.collisionData
+            });
+        };
+        /** @private */
+        this['recv-trigger-event-raised'] = (payload) => {
+            this.emit('protocol.trigger-event-raised', {
+                colliderOwnerId: payload.actorId,
+                eventType: payload.eventType,
+                otherColliderOwnerId: payload.otherActorId
+            });
+        };
+        /** @private */
+        this['recv-animation-update'] = (payload) => {
+            this.emit('protocol.update-animations', [payload.animation]);
+        };
+        // Behave like a server-side endpoint (send heartbeats, measure connection quality)
+        this.use(new serverPreprocessing_1.ServerPreprocessing());
+    }
+    /** @override */
+    missingPromiseForReplyMessage(message) {
+        // Ignore. App receives reply messages from all clients, but only processes the first one.
+    }
+}
+exports.Execution = Execution;
+//# sourceMappingURL=execution.js.map

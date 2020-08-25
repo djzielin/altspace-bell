@@ -1,0 +1,26 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Actor, Collider, ColliderEventType, CollisionData, CollisionHandler, TriggerHandler } from "../..";
+/** @hidden */
+export declare class ColliderInternal {
+    collider: Collider;
+    private $owner;
+    private _eventHandlers;
+    private _eventSubCount;
+    /** @hidden */
+    get eventSubscriptions(): ColliderEventType[];
+    /** @hidden */
+    constructor(collider: Collider, $owner: Actor);
+    /** @hidden */
+    on(event: ColliderEventType, handler: CollisionHandler | TriggerHandler): void;
+    /** @hidden */
+    off(event: ColliderEventType, handler: CollisionHandler | TriggerHandler): void;
+    /** @hidden */
+    eventReceived(event: ColliderEventType, payload: CollisionData | Actor): void;
+    /** @hidden */
+    copyHandlers(other: ColliderInternal): void;
+    private updateEventSubscriptions;
+}
+//# sourceMappingURL=colliderInternal.d.ts.map

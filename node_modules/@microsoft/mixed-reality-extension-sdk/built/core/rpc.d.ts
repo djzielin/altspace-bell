@@ -1,0 +1,40 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Context, Guid } from '..';
+import { Payloads } from '../internal';
+/**
+ * @hidden
+ * Type defining an rpc handler function callback.
+ */
+export declare type RPCHandler = (options: {
+    userId: Guid;
+}, ...args: any[]) => void;
+/**
+ * RPC interface. Able to send and receive RPC calls.
+ */
+export declare class RPC {
+    protected _context: Context;
+    private handlers;
+    get context(): Context;
+    constructor(_context: Context);
+    on(procName: string, handler: RPCHandler): void;
+    removeAllHandlers(): void;
+    send(options: {
+        procName: string;
+        channelName?: string;
+        userId?: Guid;
+    }, ...args: any[]): void;
+    receive(procName: string, userId: Guid, ...args: any[]): void;
+}
+/**
+ * RPC channel interface. Able to route channel messages to handlers.
+ */
+export declare class RPCChannels {
+    private channelHandlers;
+    private globalHandler;
+    setChannelHandler(channelName: string, handler: RPC): void;
+    receive(payload: Payloads.EngineToAppRPC): void;
+}
+//# sourceMappingURL=rpc.d.ts.map

@@ -1,0 +1,39 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/// <reference types="node" />
+import { EventEmitter } from 'events';
+import { Guid } from '../..';
+import { ConnectionQuality, Message, NetworkStatsReport, NetworkStatsTracker, QueuedPromise } from '../../internal';
+import { Connection } from './connection';
+/**
+ * @hidden
+ */
+export declare class EventedConnection extends EventEmitter implements Connection {
+    protected _quality: ConnectionQuality;
+    private _promises;
+    statsTracker: NetworkStatsTracker;
+    private queuedMessages;
+    private timeout;
+    /** @inheritdoc */
+    get quality(): ConnectionQuality;
+    /** @inheritdoc */
+    get promises(): Map<Guid, QueuedPromise>;
+    /** @inheritdoc */
+    get statsReport(): NetworkStatsReport;
+    /**
+     * @hidden
+     * Replace this connection's quality tracker
+     */
+    linkConnectionQuality(quality: ConnectionQuality): void;
+    /** @inheritdoc */
+    off(event: string | symbol, listener: (...args: any[]) => void): this;
+    /** @inheritdoc */
+    close(): void;
+    /** @inheritdoc */
+    send(message: Message, serializedMessage?: Buffer): void;
+    /** @inheritdoc */
+    recv(message: Message, serializedMessage?: Buffer): void;
+}
+//# sourceMappingURL=eventedConnection.d.ts.map

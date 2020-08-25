@@ -1,0 +1,288 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { ActionState, ActorLike, AnimationLike, BehaviorType, Guid, MediaCommand, SetMediaStateOptions, TransformLike, UserLike } from '../..';
+import { OperatingModel, OperationResultCode, Payloads, Trace } from '../../internal';
+/**
+ * @hidden
+ * *** KEEP ENTRIES SORTED ***
+ */
+export declare type PayloadType = Payloads.AssetPayloadType | Payloads.SyncPayloadType | 'actor-correction' | 'actor-update' | 'animation-update' | 'app2engine-rpc' | 'collision-event-raised' | 'create-animation-2' | 'create-empty' | 'create-from-library' | 'destroy-actors' | 'destroy-animations' | 'dialog-response' | 'engine2app-rpc' | 'handshake' | 'handshake-complete' | 'handshake-reply' | 'heartbeat' | 'heartbeat-reply' | 'multi-operation-result' | 'object-spawned' | 'operation-result' | 'perform-action' | 'physicsbridge-transforms-update' | 'physicsbridge-server-transforms-upload' | 'rigidbody-add-force' | 'rigidbody-add-force-at-position' | 'rigidbody-add-relative-torque' | 'rigidbody-add-torque' | 'rigidbody-commands' | 'rigidbody-move-position' | 'rigidbody-move-rotation' | 'set-authoritative' | 'set-behavior' | 'set-media-state' | 'show-dialog' | 'sync-complete' | 'sync-request' | 'traces' | 'trigger-event-raised' | 'user-joined' | 'user-left' | 'user-update';
+/**
+ * @hidden
+ * Base interface for Payloads.
+ */
+export declare type Payload = {
+    type: PayloadType;
+    traces?: Trace[];
+};
+/**
+ * @hidden
+ * Engine to app. Contains a set of trace messages.
+ */
+export declare type Traces = Payload & {
+    type: 'traces';
+};
+/**
+ * @hidden
+ * Engine to app. The result of an operation.
+ */
+export declare type OperationResult = Payload & {
+    type: 'operation-result';
+    resultCode: OperationResultCode;
+    message: string;
+};
+/**
+ * @hidden
+ * Engine to app. The result of multiple operations.
+ */
+export declare type MultiOperationResult = Payload & {
+    type: 'multi-operation-result';
+    results: OperationResult[];
+};
+/**
+ * @hidden
+ * Engine to app. Handshake initiation.
+ */
+export declare type Handshake = Payload & {
+    type: 'handshake';
+};
+/**
+ * @hidden
+ * App to engine. Response to Handshake.
+ */
+export declare type HandshakeReply = Payload & {
+    type: 'handshake-reply';
+    sessionId: string;
+    operatingModel: OperatingModel;
+};
+/**
+ * @hidden
+ * Engine to app. Handshake process is complete.
+ */
+export declare type HandshakeComplete = Payload & {
+    type: 'handshake-complete';
+};
+/**
+ * @hidden
+ */
+export declare type Heartbeat = Payload & {
+    type: 'heartbeat';
+    serverTime: number;
+};
+/**
+ * @hidden
+ */
+export declare type HeartbeatReply = Payload & {
+    type: 'heartbeat-reply';
+};
+/**
+ * @hidden
+ */
+export declare type AppToEngineRPC = Payload & {
+    type: 'app2engine-rpc';
+    channelName?: string;
+    userId?: Guid;
+    procName: string;
+    args: any[];
+};
+/**
+ * @hidden
+ */
+export declare type EngineToAppRPC = Payload & {
+    type: 'engine2app-rpc';
+    channelName?: string;
+    userId?: Guid;
+    procName: string;
+    args: any[];
+};
+/**
+ * @hidden
+ */
+export declare type CreateActorCommon = Payload & {
+    actor: Partial<ActorLike>;
+};
+/**
+ * @hidden
+ * App to engine. Request for engine to load a game object from the host library.
+ * Response is an ObjectSpawned payload.
+ */
+export declare type CreateFromLibrary = CreateActorCommon & {
+    type: 'create-from-library';
+    resourceId: string;
+};
+/**
+ * @hidden
+ * App to engine. Create an empty game object.
+ * Response is an ObjectSpawned payload.
+ */
+export declare type CreateEmpty = CreateActorCommon & {
+    type: 'create-empty';
+};
+/**
+ * @hidden
+ * Engine to app. Response from LoadFromAssetBundle (and similar).
+ */
+export declare type ObjectSpawned = Payload & {
+    type: 'object-spawned';
+    actors: Array<Partial<ActorLike>>;
+    animations: Array<Partial<AnimationLike>>;
+    result: OperationResult;
+};
+/**
+ * @hidden
+ * Bi-directional. Changed properties of an actor object (sparsely populated).
+ */
+export declare type ActorUpdate = Payload & {
+    type: 'actor-update';
+    actor: Partial<ActorLike>;
+};
+/**
+ * @hidden
+ * Bi-directional. Change properties of an animation object (sparsely populated).
+ */
+export declare type AnimationUpdate = Payload & {
+    type: 'animation-update';
+    animation: Partial<AnimationLike>;
+};
+/**
+ * @hidden
+ * Engine to app.  Actor correction that should be lerped on the other clients.
+ */
+export declare type ActorCorrection = Payload & {
+    type: 'actor-correction';
+    actorId: Guid;
+    appTransform: TransformLike;
+};
+/**
+ * @hidden
+ * Bi-directional. Command to destroy an actor (and its children).
+ */
+export declare type DestroyActors = Payload & {
+    type: 'destroy-actors';
+    actorIds: Guid[];
+};
+/**
+ * @hidden
+ * Engine to app. Engine wants all the application state.
+ */
+export declare type SyncRequest = Payload & {
+    type: 'sync-request';
+};
+/**
+ * @hidden
+ * App to engine. Done sending engine the application state.
+ */
+export declare type SyncComplete = Payload & {
+    type: 'sync-complete';
+};
+/**
+ * @hidden
+ * App to engine. Specific to multi-peer adapter. Set whether the client is "authoritative". The authoritative client
+ * sends additional updates back to the app such as rigid body updates and animation events.
+ */
+export declare type SetAuthoritative = Payload & {
+    type: 'set-authoritative';
+    authoritative: boolean;
+};
+/**
+ * @hidden
+ * App to engine. The user has joined the app.
+ */
+export declare type UserJoined = Payload & {
+    type: 'user-joined';
+    user: Partial<UserLike>;
+};
+/**
+ * @hidden
+ * Engine to app. The user has left the app.
+ */
+export declare type UserLeft = Payload & {
+    type: 'user-left';
+    userId: Guid;
+};
+/**
+ * @hidden
+ * Engine to app. Update to the user's state.
+ * Only received for users who have joined the app.
+ */
+export declare type UserUpdate = Payload & {
+    type: 'user-update';
+    user: Partial<UserLike>;
+};
+/**
+ * @hidden
+ * Engine to app. The user is performing an action for a behavior.
+ */
+export declare type PerformAction = Payload & {
+    type: 'perform-action';
+    userId: Guid;
+    targetId: Guid;
+    behaviorType: BehaviorType;
+    actionName: string;
+    actionState: ActionState;
+    actionData?: any;
+};
+/**
+ * @hidden
+ * App to engine. Set the behavior on the actor with
+ * the given actor id.
+ */
+export declare type SetBehavior = Payload & {
+    type: 'set-behavior';
+    actorId: Guid;
+    behaviorType: BehaviorType;
+};
+/**
+ * @hidden
+ * App to engine. Bind anim keyframe data to a set of objects. Returns an object-spawned message.
+ */
+export declare type CreateAnimation2 = Payload & {
+    type: 'create-animation-2';
+    animation: AnimationLike;
+    targets: {
+        [placeholder: string]: Guid;
+    };
+};
+/**
+ * @hidden
+ * App to engine. Starts playing a sound.
+ */
+export declare type SetMediaState = Payload & {
+    type: 'set-media-state';
+    id: Guid;
+    actorId: Guid;
+    mediaAssetId: Guid;
+    mediaCommand: MediaCommand;
+    options: SetMediaStateOptions;
+};
+/**
+ * @hidden
+ * App to engine. Prompt to show modal dialog box.
+ */
+export declare type ShowDialog = Payload & {
+    type: 'show-dialog';
+    userId: Guid;
+    text: string;
+    acceptInput?: boolean;
+};
+/**
+ * @hidden
+ * Engine to app. Acknowledgement of modal dialog.
+ */
+export declare type DialogResponse = Payload & {
+    type: 'dialog-response';
+    failureMessage: string;
+    submitted: boolean;
+    text?: string;
+};
+/**
+ * @hidden
+ * App to engine.
+ */
+export declare type DestroyAnimations = Payload & {
+    type: 'destroy-animations';
+    animationIds: Guid[];
+};
+//# sourceMappingURL=payloads.d.ts.map

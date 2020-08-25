@@ -1,0 +1,13 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/* eslint-disable max-classes-per-file */
+Object.defineProperty(exports, "__esModule", { value: true });
+/** Thrown when a function's preconditions are not met. An argument may be null, or of the wrong type/structure. */
+class MreArgumentError extends Error {
+    constructor(...args) { super(...args); }
+}
+exports.MreArgumentError = MreArgumentError;
+//# sourceMappingURL=errors.js.map

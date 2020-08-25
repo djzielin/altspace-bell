@@ -1,0 +1,160 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = __importDefault(require("events"));
+const __1 = require("..");
+const internal_1 = require("../internal");
+const contextInternal_1 = require("./contextInternal");
+/**
+ * Container for an application session. The Context contains all application state for a session of your application.
+ * This includes Actors, Users, Assets, and other state.
+ */
+class Context {
+    /**
+     * Creates a new `Context` instance.
+     */
+    constructor(settings) {
+        this._emitter = new events_1.default.EventEmitter();
+        this._conn = settings.connection || new internal_1.NullConnection();
+        this._sessionId = settings.sessionId || __1.newGuid().toString();
+        this._internal = new contextInternal_1.ContextInternal(this);
+        this._rpcChannels = new __1.RPCChannels();
+        this._rpc = new __1.RPC(this);
+        this.rpcChannels.setChannelHandler(null, this._rpc);
+    }
+    /** @hidden */
+    get internal() { return this._internal; }
+    /** @hidden */
+    get emitter() { return this._emitter; }
+    get sessionId() { return this._sessionId; }
+    get conn() { return this._conn; }
+    /** The list of all actors in the MRE. */
+    get actors() { return [...this.internal.actorSet.values()]; }
+    /** The list of actors with no parents, i.e. root actors. */
+    get rootActors() { return this.actors.filter(a => !a.parent); }
+    /** The list of all animations. */
+    get animations() { return [...this.internal.animationSet.values()]; }
+    /** The list of all users. */
+    get users() { return [...this.internal.userSet.values()]; }
+    get rpcChannels() { return this._rpcChannels; }
+    get rpc() { return this._rpc; }
+    /** Get an actor by ID. */
+    actor(actorId) { return this.internal.actorSet.get(actorId); }
+    /** Get an animation by ID. */
+    animation(animId) { return this.internal.animationSet.get(animId); }
+    /** Get an asset by ID (from any asset container). */
+    asset(assetId) { return this.internal.lookupAsset(assetId); }
+    /** Get a user by ID. */
+    user(userId) { return this.internal.userSet.get(userId); }
+    /**
+     * Exits this context.
+     */
+    quit() {
+        // Closing the connection triggers events that will tear down the context.
+        this.conn.close();
+    }
+    /**
+     * The onStarted event is raised after the Context is fully initialized and ready for your application logic to
+     * start executing.
+     * @event
+     */
+    onStarted(handler) {
+        this.emitter.addListener('started', handler);
+        return this;
+    }
+    /**
+     * The onStopped event is raised before the Context starts shutting down, which happens after the last user
+     * disconnects.
+     * @event
+     */
+    onStopped(handler) {
+        this.emitter.addListener('stopped', handler);
+        return this;
+    }
+    /**
+     * The onUserJoined event is raised after a new user has joined the Context.
+     * @event
+     */
+    onUserJoined(handler) {
+        this.emitter.addListener('user-joined', handler);
+        return this;
+    }
+    /**
+     * Remove the onUserJoined event handler from the Context.
+     * @event
+     */
+    offUserJoined(handler) {
+        this.emitter.removeListener('user-joined', handler);
+        return this;
+    }
+    /**
+     * The onUserLeft event is raised when the given user has left the Context. After the last user leaves, the Context
+     * will be shutdown (and a 'stopped' event will soon follow).
+     * @event
+     */
+    onUserLeft(handler) {
+        this.emitter.addListener('user-left', handler);
+        return this;
+    }
+    /**
+     * Remove the onUserLeft event handler from the Context
+     * @event
+     */
+    offUserLeft(handler) {
+        this.emitter.removeListener('user-left', handler);
+        return this;
+    }
+    /**
+     * @hidden
+     * (for now)
+     */
+    onActorCreated(handler) {
+        this.emitter.addListener('actor-created', handler);
+        return this;
+    }
+    /**
+     * @hidden
+     * (for now)
+     */
+    offActorCreated(handler) {
+        this.emitter.removeListener('actor-created', handler);
+        return this;
+    }
+    /**
+     * @hidden
+     * (for now)
+     */
+    onActorDestroyed(handler) {
+        this.emitter.addListener('actor-destroyed', handler);
+        return this;
+    }
+    /**
+     * @hidden
+     * (for now)
+     */
+    offActorDestroyed(handler) {
+        this.emitter.removeListener('actor-destroyed', handler);
+        return this;
+    }
+    /**
+     * @hidden
+     */
+    receiveRPC(payload) {
+        this.rpcChannels.receive(payload);
+    }
+    /**
+     * Collect and return a snapshot of the current resource usage of the MRE subsystem. For Node process stats,
+     * use `process.resourceUsage()`.
+     */
+    getStats() {
+        return this.internal.getStats();
+    }
+}
+exports.Context = Context;
+//# sourceMappingURL=context.js.map

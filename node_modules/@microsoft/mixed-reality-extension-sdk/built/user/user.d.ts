@@ -1,0 +1,77 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Context, GroupMask, Guid, Permissions } from '..';
+import { Patchable } from '../internal';
+import { UserInternal } from './userInternal';
+export interface UserLike {
+    id: Guid;
+    name: string;
+    groups: number | GroupMask;
+    /**
+     * An array of values from the [[Permissions]] enum. These indicate permissions that this user has granted,
+     * either implicitly or explicitly.
+     */
+    grantedPermissions: Permissions[];
+    properties: {
+        [name: string]: string;
+    };
+}
+/**
+ * The structure returned from [[User.prompt]].
+ */
+export declare type DialogResponse = {
+    /** Whether the user replied in the positive (OK/Accept) or in the negative (Cancel). */
+    submitted: boolean;
+    /** The string provided by the user in the dialog text input field. */
+    text?: string;
+};
+export declare class User implements UserLike, Patchable<UserLike> {
+    private _context;
+    private _id;
+    private _internal;
+    /** @hidden */
+    get internal(): UserInternal;
+    private _name;
+    private _properties;
+    private _groups;
+    private _grantedPermissions;
+    get context(): Context;
+    get id(): Guid;
+    get name(): string;
+    /**
+     * This user's group memberships. Some actors will behave differently depending on
+     * if the user is in at least one of a set of groups. See [[GroupMask]].
+     */
+    get groups(): GroupMask;
+    set groups(val: GroupMask);
+    /**
+     * A grab bag of miscellaneous, possibly host-dependent, properties.
+     */
+    get properties(): Readonly<{
+        [x: string]: string;
+    }>;
+    /**
+     * returnes true if has any stored permissions
+     */
+    get hasGrantedPermissions(): boolean;
+    /** @inheritdoc */
+    get grantedPermissions(): Permissions[];
+    /**
+     * PUBLIC METHODS
+     */
+    constructor(_context: Context, _id: Guid);
+    /**
+     * Present the user with a modal dialog, and resolve with the response.
+     * @param text A message presented to the user.
+     * @param acceptInput Whether or not the dialog should include a text input field.
+     */
+    prompt(text: string, acceptInput?: boolean): Promise<DialogResponse>;
+    /** @hidden */
+    copy(from: Partial<UserLike>): this;
+    /** @hidden */
+    toJSON(): UserLike;
+    private userChanged;
+}
+//# sourceMappingURL=user.d.ts.map

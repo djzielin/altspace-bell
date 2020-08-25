@@ -1,0 +1,87 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("..");
+const assetInternal_1 = require("./assetInternal");
+// break import cycle
+const asset_1 = require("./asset");
+/** Represents a mesh on an actor */
+class Mesh extends asset_1.Asset {
+    /** @hidden */
+    constructor(container, def) {
+        super(container, def);
+        this._internal = new assetInternal_1.AssetInternal(this);
+        this._dimensions = new __1.Vector3();
+        this._center = new __1.Vector3();
+        this._primDef = null;
+        if (!def.mesh) {
+            throw new Error("Cannot construct mesh from non-mesh definition");
+        }
+        this.copy(def);
+    }
+    /** @hidden */
+    get internal() { return this._internal; }
+    /** @inheritdoc */
+    get vertexCount() { return this._vertexCount; }
+    /** @inheritdoc */
+    get triangleCount() { return this._triangleCount; }
+    /** @inheritdoc */
+    get boundingBoxDimensions() { return this._dimensions; }
+    /** @inheritdoc */
+    get boundingBoxCenter() { return this._center; }
+    /** @inheritdoc */
+    get primitiveDefinition() { return this._primDef; }
+    /** @inheritdoc */
+    get mesh() { return this; }
+    copy(from) {
+        var _a, _b, _c, _d, _e;
+        if (!from) {
+            return this;
+        }
+        // Pause change detection while we copy the values into the actor.
+        const wasObserving = this.internal.observing;
+        this.internal.observing = false;
+        super.copy(from);
+        if (((_a = from.mesh) === null || _a === void 0 ? void 0 : _a.vertexCount) !== undefined) {
+            this._vertexCount = from.mesh.vertexCount;
+        }
+        if (((_b = from.mesh) === null || _b === void 0 ? void 0 : _b.triangleCount) !== undefined) {
+            this._triangleCount = from.mesh.triangleCount;
+        }
+        if ((_c = from.mesh) === null || _c === void 0 ? void 0 : _c.boundingBoxDimensions) {
+            this._dimensions.copy(from.mesh.boundingBoxDimensions);
+        }
+        if ((_d = from.mesh) === null || _d === void 0 ? void 0 : _d.boundingBoxCenter) {
+            this._center.copy(from.mesh.boundingBoxCenter);
+        }
+        if ((_e = from.mesh) === null || _e === void 0 ? void 0 : _e.primitiveDefinition) {
+            this._primDef = from.mesh.primitiveDefinition;
+        }
+        this.internal.observing = wasObserving;
+        return this;
+    }
+    /** @hidden */
+    toJSON() {
+        return Object.assign(Object.assign({}, super.toJSON()), { mesh: {
+                vertexCount: this.vertexCount,
+                triangleCount: this.triangleCount,
+                boundingBoxDimensions: this.boundingBoxDimensions,
+                boundingBoxCenter: this.boundingBoxCenter,
+                primitiveDefinition: this.primitiveDefinition
+            } });
+    }
+    /** @hidden */
+    breakReference(ref) {
+        if (!(ref instanceof __1.Actor)) {
+            return;
+        }
+        if (ref.appearance.mesh === this) {
+            ref.appearance.mesh = null;
+        }
+    }
+}
+exports.Mesh = Mesh;
+//# sourceMappingURL=mesh.js.map

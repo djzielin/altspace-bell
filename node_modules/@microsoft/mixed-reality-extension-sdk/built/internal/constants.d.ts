@@ -1,0 +1,13 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/** @hidden */
+export declare const HTTPHeaders: {
+    SessionID: string;
+    PlatformID: string;
+    LegacyProtocolVersion: string;
+    CurrentClientVersion: string;
+    MinimumSupportedSDKVersion: string;
+};
+//# sourceMappingURL=constants.d.ts.map

@@ -1,0 +1,18 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Payloads, Session } from '../../../../internal';
+import { Protocol } from '../../../protocols';
+/**
+ * @hidden
+ * Protocol for handling handshake with the app instance (Session is a client of App)
+ */
+export declare class SessionHandshake extends Protocol {
+    constructor(session: Session);
+    /** @override */
+    startListening(): void;
+    /** @private */
+    'recv-handshake-reply': (payload: Payloads.HandshakeReply) => void;
+}
+//# sourceMappingURL=sessionHandshake.d.ts.map

@@ -1,0 +1,40 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { ColliderType, Vector3Like } from "../..";
+/**
+ * Collider parameters specific to a sphere collider.
+ */
+export declare type SphereColliderGeometry = {
+    shape: ColliderType.Sphere;
+    center?: Readonly<Vector3Like>;
+    radius?: number;
+};
+/**
+ * Collider parameters specific to a box collider
+ */
+export declare type BoxColliderGeometry = {
+    shape: ColliderType.Box;
+    center?: Readonly<Vector3Like>;
+    size?: Readonly<Vector3Like>;
+};
+/**
+ * Collider parameters specific to a capsule collider
+ */
+export declare type CapsuleColliderGeometry = {
+    shape: ColliderType.Capsule;
+    center?: Readonly<Vector3Like>;
+    size?: Readonly<Vector3Like>;
+};
+/**
+ * A best-guess shape for the currently assigned mesh
+ */
+export declare type AutoColliderGeometry = {
+    shape: ColliderType.Auto;
+};
+/**
+ * All collider parameter types.
+ */
+export declare type ColliderGeometry = SphereColliderGeometry | BoxColliderGeometry | CapsuleColliderGeometry | AutoColliderGeometry;
+//# sourceMappingURL=colliderGeometry.d.ts.map

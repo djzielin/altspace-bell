@@ -1,0 +1,151 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+const __1 = require("..");
+const assetInternal_1 = require("../asset/assetInternal");
+// break import cycle
+const asset_1 = require("../asset/asset");
+class AnimationData extends asset_1.Asset {
+    /** @hidden */
+    constructor(container, def) {
+        super(container, def);
+        this._internal = new assetInternal_1.AssetInternal(this);
+        if (!def.animationData) {
+            throw new Error("Cannot construct animation data from non-animation data definition");
+        }
+        this.copy(def);
+    }
+    get internal() { return this._internal; }
+    /** @inheritdoc */
+    get tracks() { return this._tracks; }
+    /** @inheritdoc */
+    get animationData() { return this; }
+    /** The length of the animation data. */
+    duration() {
+        return this.tracks.reduce((trackMax, track) => Math.max(trackMax, track.keyframes.reduce((kfMax, kf) => Math.max(kfMax, kf.time), 0)), 0);
+    }
+    /** The placeholders and types of the animation's targets. */
+    targets() {
+        return this.tracks
+            // track targets (both direct and value targets)
+            .reduce((paths, t) => {
+            paths.push(t.target.toString().split('/')[0], ...t.keyframes
+                .map(k => { var _a, _b; return (_b = (_a = __1.TargetPath.Parse(k.value.toString())) === null || _a === void 0 ? void 0 : _a.slice(0, 2)) === null || _b === void 0 ? void 0 : _b.join(':'); })
+                .filter(val => !!val));
+            return paths;
+        }, [])
+            // that are unique in the list
+            .filter((target, i, arr) => arr.indexOf(target) === i)
+            // and add their types/names to an object
+            .reduce((obj, id) => {
+            const [type, placeholder] = id.split(':');
+            obj[placeholder] = type;
+            return obj;
+        }, {});
+    }
+    /**
+     * Bind this animation data to one or more targets to create an [[Animation]].
+     * @param targets A map of placeholder names to real objects. The names and types must match those in [[targets]].
+     * @param initialState Initial properties for the new animation.
+     * @throws [[MreValidationError]] If the provided `targets` argument does not exactly match in contents and types
+     * to what the data expects. See [[targets]].
+     */
+    bind(targets, initialState) {
+        // validate names and types
+        const dataTargets = this.targets();
+        const dataPlaceholders = new Set(Object.keys(dataTargets));
+        const targetIds = {};
+        for (const placeholder in targets) {
+            if (!dataPlaceholders.has(placeholder)) {
+                throw new __1.MreArgumentError(`Animation data "${this.name || this.id}" has no reference ` +
+                    `to placeholder "${placeholder}".`);
+            }
+            else if (__1.getAnimatibleName(targets[placeholder]) !== dataTargets[placeholder]) {
+                throw new __1.MreArgumentError(`Placeholder "${placeholder}" for animation data ` +
+                    `"${this.name || this.id}" must be of type ${dataTargets[placeholder]}, ` +
+                    `got "${targets[placeholder].constructor.name}".`);
+            }
+            dataPlaceholders.delete(placeholder);
+            targetIds[placeholder] = targets[placeholder].id;
+        }
+        // check for missing placeholders
+        if (dataPlaceholders.size > 0) {
+            throw new __1.MreArgumentError(`Attempting to bind animation data "${this.name || this.id} ` +
+                `without definitions for the required placeholders "${[...dataPlaceholders].join('", "')}".`);
+        }
+        return this.container.context.internal.createAnimationFromData(this.id, targetIds, initialState);
+    }
+    /** @hidden */
+    copy(from) {
+        var _a, _b, _c;
+        super.copy(from);
+        if (!this._tracks && ((_b = (_a = from) === null || _a === void 0 ? void 0 : _a.animationData) === null || _b === void 0 ? void 0 : _b.tracks)) {
+            this._tracks = [...(_c = from.animationData) === null || _c === void 0 ? void 0 : _c.tracks];
+        }
+        return this;
+    }
+    /** @hidden */
+    toJSON() {
+        return Object.assign(Object.assign({}, super.toJSON()), { animationData: {
+                tracks: this.tracks
+            } });
+    }
+    /** @hidden */
+    breakReference(ref) {
+        if (!(ref instanceof __1.Animation)) {
+            return;
+        }
+        // animations don't work without data, so deregister if the data is unloaded
+        if (ref.dataId === this.id) {
+            this.container.context.internal.destroyAnimation(ref.id);
+        }
+    }
+    /**
+     * Returns a list of problems with the data, or null if no problems.
+     * @hidden
+     */
+    static Validate(data) {
+        var _a;
+        const errors = [];
+        // make sure data has at least one track
+        if (data.tracks.length === 0) {
+            errors.push("Data must contain at least one track");
+        }
+        const maxTrackLen = data.tracks.reduce((max, t) => { var _a; return Math.max(max, (_a = t.keyframes[t.keyframes.length - 1]) === null || _a === void 0 ? void 0 : _a.time); }, -Infinity);
+        for (let ti = 0; ti < data.tracks.length; ti++) {
+            const t = data.tracks[ti];
+            // make sure keyframes are in order by time
+            for (let ki = 0; ki < t.keyframes.length; ki++) {
+                const k = t.keyframes[ki];
+                if (ki === 0) {
+                    if (k.time < 0) {
+                        errors.push(`Track ${ti} keyframe ${ki} time cannot be less than 0`);
+                    }
+                }
+                else if (k.time <= t.keyframes[ki - 1].time) {
+                    errors.push(`Track ${ti} keyframe ${ki} is out of sequence`);
+                }
+                if (k.easing) {
+                    if (k.easing[0] < 0 || k.easing[0] > 1) {
+                        errors.push(`Track ${ti} keyframe ${ki} easing[0] must be between 0 and 1`);
+                    }
+                    if (k.easing[2] < 0 || k.easing[2] > 1) {
+                        errors.push(`Track ${ti} keyframe ${ki} easing[2] must be between 0 and 1`);
+                    }
+                }
+                if (k.value instanceof __1.TargetPath && t.relative) {
+                    errors.push(`Relative track ${ti} cannot contain keyframe ${ki}'s realtime value`);
+                }
+            }
+            if (((_a = t.keyframes[t.keyframes.length - 1]) === null || _a === void 0 ? void 0 : _a.time) !== maxTrackLen) {
+                errors.push(`Track ${ti} is a different length from the others`);
+            }
+        }
+        return errors.length > 0 ? errors : null;
+    }
+}
+exports.AnimationData = AnimationData;
+//# sourceMappingURL=animationData.js.map

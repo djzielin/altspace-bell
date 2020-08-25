@@ -1,0 +1,19 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/** @hidden */
+class AnimationInternal {
+    constructor(animation) {
+        this.animation = animation;
+        this.observing = true;
+    }
+    getPatchAndReset() {
+        const patch = this.patch;
+        if (patch) {
+            patch.id = this.animation.id;
+            this.patch = null;
+        }
+        return patch;
+    }
+}
+exports.AnimationInternal = AnimationInternal;
+//# sourceMappingURL=animationInternal.js.map

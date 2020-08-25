@@ -1,0 +1,53 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = require("events");
+/** @hidden */
+class ColliderInternal {
+    /** @hidden */
+    constructor(collider, $owner) {
+        this.collider = collider;
+        this.$owner = $owner;
+        this._eventHandlers = new events_1.EventEmitter();
+        this._eventSubCount = 0;
+    }
+    /** @hidden */
+    get eventSubscriptions() {
+        return this._eventHandlers.eventNames();
+    }
+    /** @hidden */
+    on(event, handler) {
+        this._eventHandlers.addListener(event, handler);
+        this.updateEventSubscriptions();
+    }
+    /** @hidden */
+    off(event, handler) {
+        this._eventHandlers.removeListener(event, handler);
+        this.updateEventSubscriptions();
+    }
+    /** @hidden */
+    eventReceived(event, payload) {
+        this._eventHandlers.emit(event, payload);
+    }
+    /** @hidden */
+    copyHandlers(other) {
+        for (const event of other._eventHandlers.eventNames()) {
+            for (const handler of other._eventHandlers.listeners(event)) {
+                this._eventHandlers.on(event, handler);
+            }
+        }
+    }
+    updateEventSubscriptions() {
+        const newSubCount = this._eventHandlers.eventNames().length;
+        if (this._eventSubCount !== newSubCount) {
+            // Notifty that event handler subscriptions has changed.
+            this.$owner.actorChanged('collider', 'eventSubscriptions');
+            this._eventSubCount = newSubCount;
+        }
+    }
+}
+exports.ColliderInternal = ColliderInternal;
+//# sourceMappingURL=colliderInternal.js.map

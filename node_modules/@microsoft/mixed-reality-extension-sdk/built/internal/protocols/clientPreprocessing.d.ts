@@ -1,0 +1,15 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Message, Payloads, Protocols } from '../../internal';
+/**
+ * @hidden
+ */
+export declare class ClientPreprocessing implements Protocols.Middleware {
+    private protocol;
+    constructor(protocol: Protocols.Protocol);
+    /** @private */
+    beforeRecv: (message: Message<Payloads.Payload>) => Message<Payloads.Payload>;
+}
+//# sourceMappingURL=clientPreprocessing.d.ts.map

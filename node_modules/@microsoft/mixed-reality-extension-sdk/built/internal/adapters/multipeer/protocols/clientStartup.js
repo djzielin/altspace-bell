@@ -1,0 +1,45 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("../../..");
+// break import cycle
+const protocols_1 = require("../../../protocols");
+class ClientStartup extends protocols_1.Protocol {
+    constructor(client, syncRequest) {
+        super(client.conn);
+        this.client = client;
+        /**
+         * @hidden
+         */
+        this['recv-sync-request'] = async (payload) => {
+            await this.performStartup(payload);
+        };
+        // Behave like a server-side endpoint (send heartbeats, measure connection quality).
+        this.use(new protocols_1.ServerPreprocessing());
+        // If we've already received the 'sync-request' payload, process it now.
+        if (syncRequest) {
+            setImmediate(async () => {
+                await this.performStartup(syncRequest);
+            });
+        }
+    }
+    /** @override */
+    get name() { return `${this.constructor.name} client ${this.client.id.substr(0, 8)}`; }
+    /** @override */
+    sendMessage(message, promise, timeoutSeconds) {
+        // Apply timeout to messages going to the client.
+        const rule = __1.Rules[message.payload.type] || __1.MissingRule;
+        super.sendMessage(message, promise, rule.client.timeoutSeconds);
+    }
+    async performStartup(payload) {
+        // Do a quick measurement of connection latency.
+        const heartbeat = new protocols_1.Heartbeat(this);
+        await heartbeat.runIterations(10); // Allow exceptions to propagate out.
+        this.resolve();
+    }
+}
+exports.ClientStartup = ClientStartup;
+//# sourceMappingURL=clientStartup.js.map

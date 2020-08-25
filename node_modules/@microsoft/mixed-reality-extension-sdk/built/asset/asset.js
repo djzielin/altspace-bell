@@ -1,0 +1,107 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("..");
+/** The base class for all asset types. */
+class Asset {
+    constructor(container, def) {
+        this.container = container;
+        /** Stores which actors/assets refer to this asset */
+        this.references = new Set();
+        this._id = def.id;
+        this._name = def.name;
+        this._source = def.source;
+    }
+    /** @inheritdoc */
+    get id() { return this._id; }
+    /** @inheritdoc */
+    get name() { return this._name; }
+    /** @inheritdoc */
+    get source() { return this._source; }
+    /** @inheritdoc */
+    get animationData() { return null; }
+    /** @inheritdoc */
+    get prefab() { return null; }
+    /** @inheritdoc */
+    get mesh() { return null; }
+    /** @inheritdoc */
+    get material() { return null; }
+    /** @inheritdoc */
+    get texture() { return null; }
+    /** @inheritdoc */
+    get sound() { return null; }
+    /** A promise that resolves when the asset is finished loading */
+    get created() { return this._loadedPromise; }
+    /** @hidden */
+    addReference(ref) {
+        this.references.add(ref);
+    }
+    /** @hidden */
+    clearReference(ref) {
+        this.references.delete(ref);
+    }
+    /** @hidden */
+    breakAllReferences() {
+        for (const r of this.references) {
+            this.breakReference(r);
+            this.clearReference(r);
+        }
+    }
+    /** @hidden */
+    setLoadedPromise(p) {
+        this._loadedPromise = p;
+    }
+    /** @hidden */
+    toJSON() {
+        return {
+            id: this._id,
+            name: this._name,
+            source: this._source
+        };
+    }
+    /** @hidden */
+    copy(from) {
+        if (from.id) {
+            this._id = from.id;
+        }
+        if (from.name) {
+            this._name = from.name;
+        }
+        if (from.source) {
+            this._source = from.source;
+        }
+        return this;
+    }
+    /** @hidden */
+    static Parse(container, def) {
+        if (def.animationData) {
+            return new __1.AnimationData(container, def);
+        }
+        else if (def.prefab) {
+            return new __1.Prefab(container, def);
+        }
+        else if (def.mesh) {
+            return new __1.Mesh(container, def);
+        }
+        else if (def.material) {
+            return new __1.Material(container, def);
+        }
+        else if (def.texture) {
+            return new __1.Texture(container, def);
+        }
+        else if (def.sound) {
+            return new __1.Sound(container, def);
+        }
+        else if (def.videoStream) {
+            return new __1.VideoStream(container, def);
+        }
+        else {
+            throw new Error(`Asset ${def.id} is not of a known type.`);
+        }
+    }
+}
+exports.Asset = Asset;
+//# sourceMappingURL=asset.js.map

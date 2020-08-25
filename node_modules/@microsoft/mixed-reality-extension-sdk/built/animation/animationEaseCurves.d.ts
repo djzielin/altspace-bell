@@ -1,0 +1,42 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/** Control points of a cubic bezier curve. @see [[AnimationEaseCurves]]. */
+export declare type EaseCurve = [number, number, number, number];
+/**
+ * Predefined ease curves from https://easings.net/. Curve shapes can be previewed there.
+ * Create your own at http://cubic-bezier.com.
+ * Note: Curves that end with "Back" include some overshoot.
+ */
+export declare const AnimationEaseCurves: {
+    /** Linear: Move at constant speed. */
+    Linear: EaseCurve;
+    /** Step: Do not interpolate. */
+    Step: EaseCurve;
+    EaseInSine: EaseCurve;
+    EaseInQuadratic: EaseCurve;
+    EaseInCubic: EaseCurve;
+    EaseInQuartic: EaseCurve;
+    EaseInQuintic: EaseCurve;
+    EaseInExponential: EaseCurve;
+    EaseInCircular: EaseCurve;
+    EaseInBack: EaseCurve;
+    EaseOutSine: EaseCurve;
+    EaseOutQuadratic: EaseCurve;
+    EaseOutCubic: EaseCurve;
+    EaseOutQuartic: EaseCurve;
+    EaseOutQuintic: EaseCurve;
+    EaseOutExponential: EaseCurve;
+    EaseOutCircular: EaseCurve;
+    EaseOutBack: EaseCurve;
+    EaseInOutSine: EaseCurve;
+    EaseInOutQuadratic: EaseCurve;
+    EaseInOutCubic: EaseCurve;
+    EaseInOutQuartic: EaseCurve;
+    EaseInOutQuintic: EaseCurve;
+    EaseInOutExponential: EaseCurve;
+    EaseInOutCircular: EaseCurve;
+    EaseInOutBack: EaseCurve;
+};
+//# sourceMappingURL=animationEaseCurves.d.ts.map

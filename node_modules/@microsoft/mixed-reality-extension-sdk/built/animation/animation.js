@@ -1,0 +1,357 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+const __1 = require("..");
+const internal_1 = require("../internal");
+const animationInternal_1 = require("./animationInternal");
+/** A runtime animation */
+class Animation {
+    /** The list of other animations that target this animation, by ID. */
+    /* public get targetingAnimations() {
+        return this.context.animations
+            .filter(anim => anim.targetIds.includes(this.id))
+            .reduce(
+                (map, anim) => {
+                    map.set(anim.id, anim);
+                    return map;
+                },
+                new Map<Guid, Animation>()
+            ) as ReadonlyMap<Guid, Animation>;
+    }*/
+    /** The list of other animations that target this animation, by name. */
+    /* public get targetingAnimationsByName() {
+        return this.context.animations
+            .filter(anim => anim.targetIds.includes(this.id) && anim.name)
+            .reduce(
+                (map, anim) => {
+                    map.set(anim.name, anim);
+                    return map;
+                },
+                new Map<string, Animation>()
+            ) as ReadonlyMap<string, Animation>;
+    }*/
+    /** INTERNAL USE ONLY. Animations are created by loading prefabs with animations on them. */
+    constructor(context, id) {
+        this.context = context;
+        /** @hidden */
+        this.internal = new animationInternal_1.AnimationInternal(this);
+        this._basisTime = 0;
+        this._time = 0;
+        this._speed = 1;
+        this._weight = 0;
+        this._wrapMode = __1.AnimationWrapMode.Once;
+        this._targetIds = [];
+        this._finished = null;
+        this._id = id;
+    }
+    /** @inheritdoc */
+    get id() { return this._id; }
+    /** @inheritdoc */
+    get name() { return this._name; }
+    set name(val) {
+        this._name = val;
+        this.animationChanged('name');
+    }
+    /** @inheritdoc */
+    get basisTime() {
+        if (this.isPlaying && this.speed !== 0) {
+            return this._basisTime;
+        }
+        else if (this.speed !== 0) {
+            return Math.max(0, Date.now() - Math.floor(this.time * 1000 / this.speed));
+        }
+        else {
+            return 0;
+        }
+    }
+    set basisTime(val) {
+        if (this._basisTime !== val) {
+            this._basisTime = Math.max(0, val);
+            this._time = (Date.now() - this._basisTime) * this.speed / 1000;
+            this.animationChanged('basisTime');
+            this.animationChanged('time');
+        }
+    }
+    /** @inheritdoc */
+    get time() {
+        if (!this.isPlaying || this.speed === 0) {
+            return this._time;
+        }
+        else {
+            return (Date.now() - this.basisTime) * this.speed / 1000;
+        }
+    }
+    set time(val) {
+        if (this._time !== val) {
+            this._time = val;
+            if (this.speed !== 0) {
+                this._basisTime = Math.max(0, Date.now() - Math.floor(this._time * 1000 / this.speed));
+            }
+            else {
+                this._basisTime = 0;
+            }
+            this.animationChanged('time');
+            this.animationChanged('basisTime');
+        }
+    }
+    /** [[time]], correcting for overruns from looping animations. Is always between 0 and [[duration]]. */
+    get normalizedTime() {
+        var _a;
+        const dur = this._duration || ((_a = this.data) === null || _a === void 0 ? void 0 : _a.duration()) || 0;
+        let time = this.time % dur;
+        if (time < 0) {
+            time += dur;
+        }
+        return time;
+    }
+    /** @inheritdoc */
+    get speed() { return this._speed; }
+    set speed(val) {
+        const curTime = this.time;
+        this._speed = val;
+        this.animationChanged('speed');
+        // recompute stored times such that there is continuity pre- and post-speed change
+        if (this.isPlaying && this._speed !== 0) {
+            this._basisTime = Math.max(0, Date.now() - Math.floor(curTime * 1000 / this.speed));
+            this.animationChanged('basisTime');
+        }
+        else {
+            this._time = curTime;
+            this.animationChanged('time');
+        }
+    }
+    /** @inheritdoc */
+    get weight() { return this._weight; }
+    set weight(val) {
+        // Getter for time converts the internal _basisTime var into the corresponding offset time,
+        // so reassigning it writes this converted time back into the internal _time var.
+        // This is needed so the paused state is stored correctly.
+        if (val === 0) {
+            // eslint-disable-next-line no-self-assign
+            this.time = this.time;
+        }
+        this._weight = val;
+        this.animationChanged('weight');
+    }
+    /** @inheritdoc */
+    get wrapMode() { return this._wrapMode; }
+    set wrapMode(val) {
+        this._wrapMode = val;
+        this.animationChanged('wrapMode');
+    }
+    /** @inheritdoc */
+    get dataId() { return this._dataId; }
+    /** The keyframe data bound to this animation */
+    get data() { var _a; return (_a = this.context.asset(this._dataId)) === null || _a === void 0 ? void 0 : _a.animationData; }
+    /** @inheritdoc */
+    get targetIds() { return Object.freeze([...this._targetIds]); }
+    /** The list of actors targeted by this animation. */
+    get targetActors() {
+        return this.targetIds.map(id => this.context.actor(id)).filter(a => !!a);
+    }
+    /** @inheritdoc */
+    get duration() { return this._duration; }
+    /**
+     * Determine if this animation is playing based on the animation's weight. Setting this property calls
+     * [[play]] and [[stop]] internally.
+     */
+    get isPlaying() { return this.weight > 0; }
+    set isPlaying(val) {
+        if (val) {
+            this.play();
+        }
+        else {
+            this.stop();
+        }
+    }
+    /**
+     * Play the animation by setting its weight to `1`.
+     * @param reset If true, restart the animation from the beginning.
+     * Defaults to `true` when `wrapMode` is `Once`, and `false` otherwise.
+     */
+    play(reset = null) {
+        // no-op if already playing
+        if (this.isPlaying) {
+            return;
+        }
+        const realReset = reset === true || reset === null && this.wrapMode === __1.AnimationWrapMode.Once;
+        // can't compute basis time with a zero speed, just leave it where it was
+        if (this.speed === 0 && realReset) {
+            this.time = 0;
+        }
+        else if (this.speed !== 0) {
+            // Getter for basis time converts the internal _time var into the corresponding basis time,
+            // so reassigning it writes this converted time back into the internal _basisTime var.
+            this.basisTime = (realReset ? Date.now() : this.basisTime)
+                // start slightly in the future so we don't always skip over part of the animation.
+                + Math.floor(this.context.conn.quality.latencyMs.value / 1000);
+        }
+        this.weight = 1;
+    }
+    /**
+     * Halt the running animation by setting its weight to `0`. Has no effect if the animation is already stopped.
+     */
+    stop() {
+        // no-op if already stopped
+        if (!this.isPlaying) {
+            return;
+        }
+        this.weight = 0;
+    }
+    /** @returns A promise that resolves when the animation completes. This only occurs if the wrap mode is set
+     * to "Once". The promise is not resolved if the animation is stopped manually.
+     */
+    finished() {
+        if (this._finished) {
+            return this._finished.original;
+        }
+        const promise = new Promise((resolve, reject) => {
+            this._finished = { resolve, reject };
+        });
+        this._finished.original = promise;
+        return promise;
+    }
+    /**
+     * Tells whether this animation is an orphan, i.e. its data has been unloaded, or it has no live targets.
+     * @returns Whether this animation is an orphan.
+     */
+    isOrphan() {
+        // anim is unregistered
+        return this.context.animation(this.id) === null ||
+            // data is unloaded
+            (this.dataId && !this.data) ||
+            // all targets are destroyed/unloaded/unregistered
+            this.targetIds.every(id => this.context.actor(id) === null /*&&
+            this.context.asset(id) === null &&
+            this.context.animation(id) === null*/);
+    }
+    /** Destroy this animation. */
+    delete() {
+        this.context.internal.destroyAnimation(this.id);
+    }
+    /** @hidden */
+    toJSON() {
+        return {
+            id: this.id,
+            name: this.name,
+            basisTime: this._basisTime,
+            time: this._time,
+            speed: this.speed,
+            weight: this.weight,
+            wrapMode: this.wrapMode,
+            isPlaying: this.isPlaying,
+            dataId: this.dataId,
+            targetIds: this.targetIds,
+            duration: this.duration
+        };
+    }
+    /** @hidden */
+    copy(patch) {
+        if (!patch) {
+            return this;
+        }
+        this.internal.observing = false;
+        if (patch.name !== undefined) {
+            this.name = patch.name;
+        }
+        if (patch.wrapMode) {
+            this.wrapMode = patch.wrapMode;
+        }
+        if (patch.speed !== undefined) {
+            this.speed = patch.speed;
+        }
+        if (patch.isPlaying !== undefined) {
+            this.isPlaying = patch.isPlaying;
+        }
+        if (patch.weight !== undefined) {
+            this.weight = patch.weight;
+        }
+        if (patch.basisTime !== undefined) {
+            this.basisTime = patch.basisTime;
+        }
+        if (patch.time !== undefined) {
+            this.time = patch.time;
+        }
+        if (patch.dataId) {
+            this._dataId = patch.dataId;
+        }
+        if (patch.targetIds) {
+            this._targetIds = [...patch.targetIds];
+        }
+        if (patch.duration !== undefined) {
+            this._duration = patch.duration;
+        }
+        this.internal.observing = true;
+        if (patch.weight === 0 && this._finished) {
+            this._finished.resolve();
+        }
+        return this;
+    }
+    animationChanged(...path) {
+        var _a;
+        if (this.internal.observing) {
+            this.context.internal.incrementGeneration();
+            this.internal.patch = (_a = this.internal.patch, (_a !== null && _a !== void 0 ? _a : {}));
+            internal_1.readPath(this, this.internal.patch, ...path);
+        }
+    }
+    /**
+     * Animate an object's properties to a desired final state.
+     * @param context A valid MRE context.
+     * @param object The object to animate. Must be either an [[Actor]], an [[Animation]], or a [[Material]].
+     * @param options How the object should animate.
+     */
+    static async AnimateTo(context, object, options) {
+        const tracks = [];
+        const typeString = __1.getAnimatibleName(object);
+        if (!typeString) {
+            throw new Error(`Attempting to animate non-animatible object`);
+        }
+        /** Should this object be sent whole instead of by properties */
+        function isCompleteObject(obj) {
+            return (obj.x !== undefined && obj.y !== undefined && obj.z !== undefined)
+                || (obj.r !== undefined && obj.g !== undefined && obj.b !== undefined);
+        }
+        /** Recursively search for fields with destinations.
+        * NOTE: This is all untyped because JS doesn't support types at runtime.
+        * The function definition guarantees correct types anyway, so shouldn't be a problem.
+        */
+        (function buildTracksRecursively(target, path) {
+            for (const field in target) {
+                if (typeof target[field] === 'object' && !isCompleteObject(target[field])) {
+                    buildTracksRecursively(target[field], `${path}/${field}`);
+                }
+                else {
+                    // generate a track for each property
+                    tracks.push({
+                        target: `${path}/${field}`,
+                        // generate a single keyframe for the destination
+                        keyframes: [{
+                                time: options.duration,
+                                value: target[field]
+                            }],
+                        easing: options.easing !== undefined ? options.easing : __1.AnimationEaseCurves.Linear
+                    });
+                }
+            }
+        })(options.destination, `${typeString}:target`);
+        // create the animation data
+        const ac = new __1.AssetContainer(context);
+        const data = ac.createAnimationData('temp', {
+            // force type assumptions
+            tracks: tracks
+        });
+        // bind to the object and play immediately
+        const anim = await data.bind({ target: object }, {
+            isPlaying: true,
+            wrapMode: __1.AnimationWrapMode.Once
+        });
+        await anim.finished();
+        ac.unload();
+    }
+}
+exports.Animation = Animation;
+//# sourceMappingURL=animation.js.map

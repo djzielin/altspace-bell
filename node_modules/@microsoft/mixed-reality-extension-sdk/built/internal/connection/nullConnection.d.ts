@@ -1,0 +1,30 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/// <reference types="node" />
+import { EventEmitter } from 'events';
+import { Guid } from '../..';
+import { Connection, ConnectionQuality, Message, NetworkStatsReport, QueuedPromise } from '../../internal';
+/**
+ * @hidden
+ * A Connection that does performs nops for send and receive.
+ */
+export declare class NullConnection extends EventEmitter implements Connection {
+    private _quality;
+    /** @inheritdoc */
+    get quality(): ConnectionQuality;
+    /** @inheritdoc */
+    get promises(): Map<Guid, QueuedPromise>;
+    /** @inheritdoc */
+    get statsReport(): NetworkStatsReport;
+    /** @inheritdoc */
+    off(event: string | symbol, listener: (...args: any[]) => void): this;
+    /** @inheritdoc */
+    close(): void;
+    /** @inheritdoc */
+    send(message: Message, serializedMessage?: Buffer): void;
+    /** @inheritdoc */
+    recv(message: Message, serializedMessage?: Buffer): void;
+}
+//# sourceMappingURL=nullConnection.d.ts.map

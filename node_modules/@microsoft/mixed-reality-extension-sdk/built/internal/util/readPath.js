@@ -1,0 +1,31 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const internal_1 = require("../../internal");
+/**
+ * @hidden
+ * Reads the value at the path in the src object and writes it to the dst object.
+ */
+function readPath(src, dst, ...path) {
+    let field;
+    while (path.length) {
+        field = path.shift();
+        internal_1.validateJsonFieldName(field);
+        if (path.length) {
+            if (!Object.prototype.hasOwnProperty.call(dst, field)) {
+                dst[field] = {};
+            }
+            dst = dst[field];
+        }
+        if (typeof src[field] === 'undefined') {
+            return;
+        }
+        src = src[field];
+    }
+    dst[field] = (src && src.toJSON) ? src.toJSON() : src;
+}
+exports.readPath = readPath;
+//# sourceMappingURL=readPath.js.map

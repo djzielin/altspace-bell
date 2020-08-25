@@ -1,0 +1,127 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { AnimationData, AnimationDataLike, Asset, Context, Guid, Material, MaterialLike, Mesh, Prefab, PrimitiveDefinition, ReadonlyMap, Sound, SoundLike, Texture, TextureLike, VideoStream, VideoStreamLike } from '..';
+/**
+ * The root object of the MRE SDK's asset system. Once you create an AssetContainer,
+ * you can create new materials, textures, or sounds from scratch, or load glTF
+ * files for their assets.
+ */
+export declare class AssetContainer {
+    context: Context;
+    private _id;
+    private _assets;
+    /** @hidden */
+    get id(): Guid;
+    /** A mapping of asset IDs to assets in this container */
+    get assetsById(): ReadonlyMap<Guid, Asset>;
+    /** A list of all assets in this container */
+    get assets(): Asset[];
+    /** A list of all animation data in this container */
+    get animationData(): AnimationData[];
+    /** A list of all materials in this container */
+    get materials(): Material[];
+    /** A list of all meshes in this container */
+    get meshes(): Mesh[];
+    /** A list of all prefabs in this container */
+    get prefabs(): Prefab[];
+    /** A list of all sounds in this container */
+    get sounds(): Sound[];
+    /** A list of all textures in this container */
+    get textures(): Texture[];
+    /** Create a new asset container */
+    constructor(context: Context);
+    /**
+     * Generate a new material
+     * @param name The new material's name
+     * @param definition The initial material properties
+     */
+    createMaterial(name: string, definition: Partial<MaterialLike>): Material;
+    /**
+     * Load an image file and generate a new texture asset
+     * @param name The new texture's name
+     * @param definition The initial texture properties. The `uri` property is required.
+     */
+    createTexture(name: string, definition: Partial<TextureLike>): Texture;
+    /**
+     * Load an audio file and generate a new sound asset
+     * @param name The new sound's name
+     * @param definition The initial sound properties. The `uri` property is required.
+     */
+    createSound(name: string, definition: Partial<SoundLike>): Sound;
+    /**
+     * Preload a video stream and generate a new video stream asset
+     * @param name The new stream's name
+     * @param definition The initial video stream properties. The `uri` property is required.
+     */
+    createVideoStream(name: string, definition: Partial<VideoStreamLike>): VideoStream;
+    /**
+     * Preload unbound animation keyframe data for later use.
+     * @param name The name of this animation
+     * @param data The keyframe data
+     * @throws [[MreValidationError]] If the provided animation data is malformed. See the error message for details.
+     */
+    createAnimationData(name: string, data: AnimationDataLike): AnimationData;
+    /**
+     * Create a new sphere-shaped mesh.
+     * @param name The name to give to the asset.
+     * @param radius The radius of the sphere.
+     * @param uSegments The number of longitudinal segments.
+     * @param vSegments The number of latitudinal segments.
+     */
+    createSphereMesh(name: string, radius: number, uSegments?: number, vSegments?: number): Mesh;
+    /**
+     * Create a new box-shaped mesh.
+     * @param name The name to give to the asset.
+     * @param width The length of the box on the X axis.
+     * @param height The length of the box on the Y axis.
+     * @param depth The length of the box on the Z axis.
+     */
+    createBoxMesh(name: string, width: number, height: number, depth: number): Mesh;
+    /**
+     * Create a new capsule-shaped mesh.
+     * @param name The name to give to the asset.
+     * @param height The height of the capsule from tip to tip.
+     * @param radius The thickness of the capsule.
+     * @param direction The long axis of the capsule.
+     * @param uSegments The number of longitudinal segments.
+     * @param vSegments The number of latitudinal segments.
+     */
+    createCapsuleMesh(name: string, height: number, radius: number, direction?: 'x' | 'y' | 'z', uSegments?: number, vSegments?: number): Mesh;
+    /**
+     * Create a new cylinder-shaped mesh.
+     * @param name The name to give to the asset.
+     * @param height The height of the cylinder.
+     * @param radius The thickness of the cylinder.
+     * @param direction The long axis of the cylinder.
+     * @param uSegments The number of longitudinal segments.
+     */
+    createCylinderMesh(name: string, height: number, radius: number, direction?: 'x' | 'y' | 'z', uSegments?: number): Mesh;
+    /**
+     * Create a flat mesh on the X-Z plane.
+     * @param name The name to give to the asset.
+     * @param width The X-axis length of the plane.
+     * @param height The Z-axis length of the plane.
+     * @param uSegments The number of X-axis segments.
+     * @param vSegments The number of Z-axis segments.
+     */
+    createPlaneMesh(name: string, width: number, height: number, uSegments?: number, vSegments?: number): Mesh;
+    /**
+     * Create a new mesh from the given primitive definition
+     * @param name The new mesh's name
+     * @param definition A description of the desired mesh
+     */
+    createPrimitiveMesh(name: string, definition: PrimitiveDefinition): Mesh;
+    /**
+     * Load the assets in a glTF file by URL, and this container with the result.
+     * @param uri The URI to a glTF model.
+     * @param colliderType The shape of the generated prefab collider.
+     * @returns A promise that resolves with the list of loaded assets.
+     */
+    loadGltf(uri: string, colliderType?: 'box' | 'mesh'): Promise<Asset[]>;
+    /** Break references to all assets in the container, and unload them to free memory */
+    unload(): void;
+    private sendCreateAsset;
+}
+//# sourceMappingURL=assetContainer.d.ts.map

@@ -1,0 +1,19 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Guid } from '../../..';
+import { Message, Payloads } from '../../../internal';
+/** @hidden */
+export declare class SyncAnimation {
+    id: Guid;
+    /** Used if animation was packaged with others, i.e. part of a prefab */
+    creatorMessageId: Guid;
+    /** Which objects this animation affects */
+    targetIds: Guid[];
+    /** Used only with batch creation, as definition is updated for other */
+    update: Message<Payloads.AnimationUpdate>;
+    /** Whether this animation is active */
+    active: boolean;
+}
+//# sourceMappingURL=syncAnimation.d.ts.map

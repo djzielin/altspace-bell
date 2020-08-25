@@ -1,0 +1,44 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+/** Describes a relative position in a [[GridLayout]]. */
+var BoxAlignment;
+(function (BoxAlignment) {
+    /** Position above and to the left of the anchor. */
+    BoxAlignment["TopLeft"] = "top-left";
+    /** Position directly above the anchor. */
+    BoxAlignment["TopCenter"] = "top-center";
+    /** Position above and to the right of the anchor. */
+    BoxAlignment["TopRight"] = "top-right";
+    /** Position directly left of the anchor. */
+    BoxAlignment["MiddleLeft"] = "middle-left";
+    /** Position directly on top of the anchor. */
+    BoxAlignment["MiddleCenter"] = "middle-center";
+    /** Position directly right of the anchor. */
+    BoxAlignment["MiddleRight"] = "middle-right";
+    /** Position below and to the left of the anchor. */
+    BoxAlignment["BottomLeft"] = "bottom-left";
+    /** Position directly below the anchor. */
+    BoxAlignment["BottomCenter"] = "bottom-center";
+    /** Position below and to the right of the anchor. */
+    BoxAlignment["BottomRight"] = "bottom-right";
+})(BoxAlignment = exports.BoxAlignment || (exports.BoxAlignment = {}));
+/** Invert a [[BoxAlignment]] value around the anchor (e.g. TopLeft to BottomRight). */
+function InvertBoxAlignment(align) {
+    switch (align) {
+        case BoxAlignment.TopLeft: return BoxAlignment.BottomRight;
+        case BoxAlignment.TopCenter: return BoxAlignment.BottomCenter;
+        case BoxAlignment.TopRight: return BoxAlignment.BottomLeft;
+        case BoxAlignment.MiddleLeft: return BoxAlignment.MiddleRight;
+        case BoxAlignment.MiddleCenter: return BoxAlignment.MiddleCenter;
+        case BoxAlignment.MiddleRight: return BoxAlignment.MiddleLeft;
+        case BoxAlignment.BottomLeft: return BoxAlignment.TopRight;
+        case BoxAlignment.BottomCenter: return BoxAlignment.TopCenter;
+        case BoxAlignment.BottomRight: return BoxAlignment.TopLeft;
+    }
+}
+exports.InvertBoxAlignment = InvertBoxAlignment;
+//# sourceMappingURL=boxAlignment.js.map

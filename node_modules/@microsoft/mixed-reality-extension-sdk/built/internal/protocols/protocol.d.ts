@@ -1,0 +1,41 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/// <reference types="node" />
+import { EventEmitter } from 'events';
+import { Guid } from '../..';
+import { Connection, ExportedPromise, Message, Payloads, Protocols } from '../../internal';
+/**
+ * @hidden
+ * Class to handle sending and receiving messages with a client.
+ */
+export declare class Protocol extends EventEmitter {
+    private _conn;
+    private middlewares;
+    private promise;
+    private promiseResolve;
+    private promiseReject;
+    get conn(): Connection;
+    get promises(): Map<Guid, import("..").QueuedPromise>;
+    get name(): string;
+    constructor(_conn: Connection);
+    run(): Promise<void>;
+    completed(): Promise<void>;
+    use(middleware: Protocols.Middleware): void;
+    startListening(): void;
+    stopListening(): void;
+    sendPayload(payload: Partial<Payloads.Payload>, promise?: ExportedPromise): void;
+    sendMessage(message: Message, promise?: ExportedPromise, timeoutSeconds?: number, serializedMessage?: Buffer): void;
+    recvMessage(message: Message): void;
+    recvPayload(payload: Partial<Payloads.Payload>): void;
+    drainPromises(): Promise<void>;
+    protected resolve(): void;
+    protected reject(e?: any): void;
+    protected handleReplyMessage(message: Message): void;
+    private rejectPromiseForMessage;
+    protected missingPromiseForReplyMessage(message: Message): void;
+    private onReceive;
+    private onClose;
+}
+//# sourceMappingURL=protocol.d.ts.map

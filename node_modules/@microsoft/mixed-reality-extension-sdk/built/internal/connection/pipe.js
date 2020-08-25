@@ -1,0 +1,47 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const internal_1 = require("../../internal");
+/**
+ * @hidden
+ * Class representing two connected endpoints, allowing them to send and receive to and from one another
+ */
+class Pipe {
+    constructor() {
+        this._local = new internal_1.EventedConnection();
+        this._remote = new internal_1.EventedConnection();
+        this._onLocalClose = this.onLocalClose.bind(this);
+        this._onRemoteClose = this.onRemoteClose.bind(this);
+        this._local.on('send', (message) => {
+            process.nextTick(() => {
+                this._remote.recv(message);
+            });
+        });
+        this._remote.on('send', (message) => {
+            process.nextTick(() => {
+                this._local.recv(message);
+            });
+        });
+        this._local.on('close', this._onLocalClose);
+        this._remote.on('close', this._onRemoteClose);
+    }
+    get local() { return this._local; }
+    get remote() { return this._remote; }
+    onLocalClose() {
+        this._local.off('close', this._onLocalClose);
+        process.nextTick(() => {
+            this._remote.close();
+        });
+    }
+    onRemoteClose() {
+        this._remote.off('close', this._onRemoteClose);
+        process.nextTick(() => {
+            this._local.close();
+        });
+    }
+}
+exports.Pipe = Pipe;
+//# sourceMappingURL=pipe.js.map

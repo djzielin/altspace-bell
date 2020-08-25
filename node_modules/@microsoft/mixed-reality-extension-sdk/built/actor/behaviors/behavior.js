@@ -1,0 +1,27 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Abstract class that serves as the base class for all behaviors.
+ */
+class Behavior {
+    /**
+     * INTERNAL METHODS
+     */
+    _supportsAction(actionName) {
+        const action = this[`_${actionName.toLowerCase()}`];
+        return action !== undefined;
+    }
+    /** @hidden */
+    _performAction(actionName, actionState, user, actionData) {
+        const action = this[`_${actionName.toLowerCase()}`];
+        if (action) {
+            action._performAction(user, actionState, actionData);
+        }
+    }
+}
+exports.Behavior = Behavior;
+//# sourceMappingURL=behavior.js.map

@@ -1,0 +1,31 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+// break import cycle
+const protocols_1 = require("../../../protocols");
+/**
+ * @hidden
+ * Protocol for handling handshake with the app instance (Session is a client of App)
+ */
+class SessionHandshake extends protocols_1.Protocol {
+    constructor(session) {
+        super(session.conn);
+        /** @private */
+        this['recv-handshake-reply'] = (payload) => {
+            this.sendPayload({ type: 'handshake-complete' });
+            this.resolve();
+        };
+        // Behave like a client-side endpoint (record latency, respond to heartbeats).
+        this.use(new protocols_1.ClientPreprocessing(this));
+    }
+    /** @override */
+    startListening() {
+        super.startListening();
+        this.sendPayload({ type: 'handshake' });
+    }
+}
+exports.SessionHandshake = SessionHandshake;
+//# sourceMappingURL=sessionHandshake.js.map

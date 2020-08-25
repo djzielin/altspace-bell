@@ -1,0 +1,1 @@
+{"version":3,"file":"triggerEvent.d.ts","sourceRoot":"","sources":["../../../src/actor/physics/triggerEvent.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,OAAO,EAAE,IAAI,EAAE,gBAAgB,EAAE,MAAM,OAAO,CAAC;AAE/C;;GAEG;AACH,MAAM,WAAW,YAAY;IAC5B,eAAe,EAAE,IAAI,CAAC;IACtB,SAAS,EAAE,gBAAgB,CAAC;IAC5B,oBAAoB,EAAE,IAAI,CAAC;CAC3B"}

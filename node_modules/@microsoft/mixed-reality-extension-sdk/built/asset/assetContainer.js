@@ -1,0 +1,283 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("..");
+const internal_1 = require("../internal");
+/**
+ * The root object of the MRE SDK's asset system. Once you create an AssetContainer,
+ * you can create new materials, textures, or sounds from scratch, or load glTF
+ * files for their assets.
+ */
+class AssetContainer {
+    /** Create a new asset container */
+    constructor(context) {
+        this.context = context;
+        this._assets = new Map();
+        this._id = __1.newGuid();
+        context.internal.assetContainers.add(this);
+    }
+    /** @hidden */
+    get id() { return this._id; }
+    /** A mapping of asset IDs to assets in this container */
+    get assetsById() { return this._assets; }
+    /** A list of all assets in this container */
+    get assets() { return [...this._assets.values()]; }
+    /** A list of all animation data in this container */
+    get animationData() { return this.assets.filter(a => a instanceof __1.AnimationData); }
+    /** A list of all materials in this container */
+    get materials() { return this.assets.filter(a => a instanceof __1.Material); }
+    /** A list of all meshes in this container */
+    get meshes() { return this.assets.filter(a => a instanceof __1.Mesh); }
+    /** A list of all prefabs in this container */
+    get prefabs() { return this.assets.filter(a => a instanceof __1.Prefab); }
+    /** A list of all sounds in this container */
+    get sounds() { return this.assets.filter(a => a instanceof __1.Sound); }
+    /** A list of all textures in this container */
+    get textures() { return this.assets.filter(a => a instanceof __1.Texture); }
+    /**
+     * Generate a new material
+     * @param name The new material's name
+     * @param definition The initial material properties
+     */
+    createMaterial(name, definition) {
+        const mat = new __1.Material(this, {
+            id: __1.newGuid(),
+            name,
+            material: internal_1.resolveJsonValues(definition)
+        });
+        mat.setLoadedPromise(this.sendCreateAsset(mat));
+        return mat;
+    }
+    /**
+     * Load an image file and generate a new texture asset
+     * @param name The new texture's name
+     * @param definition The initial texture properties. The `uri` property is required.
+     */
+    createTexture(name, definition) {
+        const tex = new __1.Texture(this, {
+            id: __1.newGuid(),
+            name,
+            texture: internal_1.resolveJsonValues(definition)
+        });
+        tex.setLoadedPromise(this.sendCreateAsset(tex));
+        return tex;
+    }
+    /**
+     * Load an audio file and generate a new sound asset
+     * @param name The new sound's name
+     * @param definition The initial sound properties. The `uri` property is required.
+     */
+    createSound(name, definition) {
+        const sound = new __1.Sound(this, {
+            id: __1.newGuid(),
+            name,
+            sound: internal_1.resolveJsonValues(definition)
+        });
+        sound.setLoadedPromise(this.sendCreateAsset(sound));
+        return sound;
+    }
+    /**
+     * Preload a video stream and generate a new video stream asset
+     * @param name The new stream's name
+     * @param definition The initial video stream properties. The `uri` property is required.
+     */
+    createVideoStream(name, definition) {
+        const video = new __1.VideoStream(this, {
+            id: __1.newGuid(),
+            name,
+            videoStream: internal_1.resolveJsonValues(definition)
+        });
+        video.setLoadedPromise(this.sendCreateAsset(video));
+        return video;
+    }
+    /**
+     * Preload unbound animation keyframe data for later use.
+     * @param name The name of this animation
+     * @param data The keyframe data
+     * @throws [[MreValidationError]] If the provided animation data is malformed. See the error message for details.
+     */
+    createAnimationData(name, data) {
+        const validationIssues = __1.AnimationData.Validate(data);
+        if (validationIssues) {
+            throw new __1.MreArgumentError("Cannot create animation data from bad data:\n"
+                + validationIssues.map(s => '- ' + s).join('\n'));
+        }
+        const animData = new __1.AnimationData(this, {
+            id: __1.newGuid(),
+            name,
+            animationData: data
+        });
+        animData.setLoadedPromise(this.sendCreateAsset(animData));
+        return animData;
+    }
+    /**
+     * Create a new sphere-shaped mesh.
+     * @param name The name to give to the asset.
+     * @param radius The radius of the sphere.
+     * @param uSegments The number of longitudinal segments.
+     * @param vSegments The number of latitudinal segments.
+     */
+    createSphereMesh(name, radius, uSegments = 36, vSegments = 18) {
+        return this.createPrimitiveMesh(name, {
+            shape: __1.PrimitiveShape.Sphere,
+            dimensions: { x: 2 * radius, y: 2 * radius, z: 2 * radius },
+            uSegments,
+            vSegments
+        });
+    }
+    /**
+     * Create a new box-shaped mesh.
+     * @param name The name to give to the asset.
+     * @param width The length of the box on the X axis.
+     * @param height The length of the box on the Y axis.
+     * @param depth The length of the box on the Z axis.
+     */
+    createBoxMesh(name, width, height, depth) {
+        return this.createPrimitiveMesh(name, {
+            shape: __1.PrimitiveShape.Box,
+            dimensions: { x: width, y: height, z: depth }
+        });
+    }
+    /**
+     * Create a new capsule-shaped mesh.
+     * @param name The name to give to the asset.
+     * @param height The height of the capsule from tip to tip.
+     * @param radius The thickness of the capsule.
+     * @param direction The long axis of the capsule.
+     * @param uSegments The number of longitudinal segments.
+     * @param vSegments The number of latitudinal segments.
+     */
+    createCapsuleMesh(name, height, radius, direction = 'y', uSegments = 36, vSegments = 18) {
+        if (height < 2 * radius) {
+            throw new Error("Capsule height must be greater than twice the radius");
+        }
+        const dimensions = { x: 2 * radius, y: 2 * radius, z: 2 * radius };
+        dimensions[direction] = height;
+        return this.createPrimitiveMesh(name, {
+            shape: __1.PrimitiveShape.Capsule,
+            dimensions,
+            uSegments,
+            vSegments
+        });
+    }
+    /**
+     * Create a new cylinder-shaped mesh.
+     * @param name The name to give to the asset.
+     * @param height The height of the cylinder.
+     * @param radius The thickness of the cylinder.
+     * @param direction The long axis of the cylinder.
+     * @param uSegments The number of longitudinal segments.
+     */
+    createCylinderMesh(name, height, radius, direction = 'y', uSegments = 36) {
+        const dimensions = { x: 2 * radius, y: 2 * radius, z: 2 * radius };
+        dimensions[direction] = height;
+        return this.createPrimitiveMesh(name, {
+            shape: __1.PrimitiveShape.Cylinder,
+            dimensions,
+            uSegments
+        });
+    }
+    /**
+     * Create a flat mesh on the X-Z plane.
+     * @param name The name to give to the asset.
+     * @param width The X-axis length of the plane.
+     * @param height The Z-axis length of the plane.
+     * @param uSegments The number of X-axis segments.
+     * @param vSegments The number of Z-axis segments.
+     */
+    createPlaneMesh(name, width, height, uSegments = 1, vSegments = 1) {
+        return this.createPrimitiveMesh(name, {
+            shape: __1.PrimitiveShape.Plane,
+            dimensions: { x: width, y: 0, z: height },
+            uSegments,
+            vSegments
+        });
+    }
+    /**
+     * Create a new mesh from the given primitive definition
+     * @param name The new mesh's name
+     * @param definition A description of the desired mesh
+     */
+    createPrimitiveMesh(name, definition) {
+        const mesh = new __1.Mesh(this, {
+            id: __1.newGuid(),
+            name,
+            mesh: {
+                primitiveDefinition: definition
+            }
+        });
+        mesh.setLoadedPromise(this.sendCreateAsset(mesh));
+        return mesh;
+    }
+    /**
+     * Load the assets in a glTF file by URL, and this container with the result.
+     * @param uri The URI to a glTF model.
+     * @param colliderType The shape of the generated prefab collider.
+     * @returns A promise that resolves with the list of loaded assets.
+     */
+    async loadGltf(uri, colliderType) {
+        if (!this._assets) {
+            throw new Error("Cannot load new assets into an unloaded container!");
+        }
+        const source = {
+            containerType: 'gltf',
+            uri
+        };
+        const payload = {
+            type: 'load-assets',
+            containerId: this.id,
+            source,
+            colliderType
+        };
+        const response = await this.context.internal
+            .sendPayloadAndGetReply(payload);
+        if (response.failureMessage) {
+            throw new Error(response.failureMessage);
+        }
+        const newAssets = [];
+        for (const def of response.assets) {
+            def.source = source;
+            const asset = __1.Asset.Parse(this, def);
+            this._assets.set(def.id, asset);
+            newAssets.push(asset);
+        }
+        return newAssets;
+    }
+    /** Break references to all assets in the container, and unload them to free memory */
+    unload() {
+        for (const a of this.assets) {
+            a.breakAllReferences();
+        }
+        this.context.internal.assetContainers.delete(this);
+        this._assets = null;
+        // wait until after the unassignments get propagated to clients to avoid visually
+        // missing textures (renders black) and missing materials (renders magenta)
+        this.context.internal.nextUpdate().then(() => {
+            this.context.internal.protocol.sendPayload({
+                type: 'unload-assets',
+                containerId: this.id
+            });
+        })
+            .catch(err => __1.log.error('app', err));
+    }
+    async sendCreateAsset(asset) {
+        if (!this._assets) {
+            throw new Error("Cannot load new assets into an unloaded container!");
+        }
+        this._assets.set(asset.id, asset);
+        const reply = await this.context.internal.sendPayloadAndGetReply({
+            type: 'create-asset',
+            containerId: this.id,
+            definition: internal_1.resolveJsonValues(asset)
+        });
+        if (reply.failureMessage || reply.assets.length !== 1) {
+            throw new Error(`Creation/Loading of asset ${asset.name} failed: ${reply.failureMessage}`);
+        }
+        asset.copy(reply.assets[0]);
+    }
+}
+exports.AssetContainer = AssetContainer;
+//# sourceMappingURL=assetContainer.js.map

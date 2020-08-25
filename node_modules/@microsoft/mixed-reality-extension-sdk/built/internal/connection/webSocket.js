@@ -1,0 +1,81 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("../..");
+const internal_1 = require("../../internal");
+// break import cycle
+const eventedConnection_1 = require("./eventedConnection");
+/**
+ * An implementation of the Connection interface that wraps a WebSocket.
+ */
+class WebSocket extends eventedConnection_1.EventedConnection {
+    constructor(_ws, _remoteAddress) {
+        super();
+        this._ws = _ws;
+        this._remoteAddress = _remoteAddress;
+        this._ws.on('close', () => {
+            super.close();
+        });
+        this._ws.on('message', (json) => {
+            if (json instanceof Buffer) {
+                this.statsTracker.recordIncoming(json.byteLength);
+                json = json.toString('utf8');
+            }
+            else {
+                json = json;
+                this.statsTracker.recordIncoming(Buffer.byteLength(json));
+            }
+            let message = null;
+            try {
+                message = JSON.parse(json);
+            }
+            catch (e) {
+                __1.log.error('network', e);
+            }
+            if (message) {
+                // Uncomment to introduce latency on incoming messages.
+                // NOTE: This will sometimes change message ordering.
+                // setTimeout(() => {
+                try {
+                    super.recv(message);
+                }
+                catch (e) {
+                    __1.log.error('network', e);
+                }
+                // }, 250 * Math.random());
+            }
+        });
+        super.on('send', (message, serializedMessage) => {
+            if (!serializedMessage) {
+                serializedMessage = Buffer.from(JSON.stringify(message, (key, value) => {
+                    internal_1.validateJsonFieldName(key);
+                    return internal_1.filterEmpty(value);
+                }), 'utf8');
+            }
+            this.statsTracker.recordOutgoing(serializedMessage.byteLength);
+            // Uncomment to introduce latency on outgoing messages.
+            // NOTE: This will sometimes change message ordering.
+            // setTimeout(() => {
+            try {
+                this._ws.send(serializedMessage, { binary: false, compress: false });
+            }
+            catch (e) {
+                __1.log.error('network', e);
+            }
+            // }, 1000 * Math.random());
+        });
+    }
+    get remoteAddress() { return this._remoteAddress; }
+    /** @override */
+    close() {
+        try {
+            this._ws.close();
+        }
+        catch (e) { }
+    }
+}
+exports.WebSocket = WebSocket;
+//# sourceMappingURL=webSocket.js.map

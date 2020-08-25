@@ -1,0 +1,409 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const deepmerge_1 = __importDefault(require("deepmerge"));
+const events_1 = require("events");
+const __1 = require("../../..");
+const internal_1 = require("../../../internal");
+/**
+ * @hidden
+ * Class for associating multiple client connections with a single app session.
+ */
+class Session extends events_1.EventEmitter {
+    /**
+     * Creates a new Session instance
+     */
+    constructor(_conn, _sessionId, _peerAuthoritative) {
+        super();
+        this._conn = _conn;
+        this._sessionId = _sessionId;
+        this._peerAuthoritative = _peerAuthoritative;
+        this._clientSet = new Map();
+        this._actorSet = new Map();
+        this._assetSet = new Map();
+        this._assetCreatorSet = new Map();
+        /** Maps animation IDs to animation sync structs */
+        this._animationSet = new Map();
+        /** Maps IDs of messages that can create animations to the messages themselves */
+        this._animationCreatorSet = new Map();
+        this._userSet = new Map();
+        this.actorLastUpdate = new Map();
+        this.client = (clientId) => this._clientSet.get(clientId);
+        this.actor = (actorId) => this._actorSet.get(actorId);
+        this.user = (userId) => this._userSet.get(userId);
+        this.childrenOf = (parentId) => {
+            return this.actors.filter(actor => actor.initialization.message.payload.actor.parentId === parentId);
+        };
+        this.creatableChildrenOf = (parentId) => {
+            return this.actors.filter(actor => actor.initialization.message.payload.actor.parentId === parentId
+                && !!actor.initialization.message.payload.type);
+        };
+        this.recvFromClient = (client, message) => {
+            message = this.preprocessFromClient(client, message);
+            if (message) {
+                this.sendToApp(message);
+            }
+        };
+        this.recvFromApp = (message) => {
+            message = this.preprocessFromApp(message);
+            if (message) {
+                this.sendToClients(message);
+            }
+        };
+        this.recvFromClient = this.recvFromClient.bind(this);
+        this.recvFromApp = this.recvFromApp.bind(this);
+        this._disconnect = this.disconnect.bind(this);
+        this._conn.on('close', this._disconnect);
+        this._conn.on('error', this._disconnect);
+    }
+    get conn() { return this._conn; }
+    get sessionId() { return this._sessionId; }
+    get protocol() { return this._protocol; }
+    get clients() {
+        return [...this._clientSet.values()].sort((a, b) => a.order - b.order);
+    }
+    get actors() { return [...this._actorSet.values()]; }
+    get assets() { return [...this._assetSet.values()]; }
+    get assetCreators() { return [...this._assetCreatorSet.values()]; }
+    get animationSet() { return this._animationSet; }
+    get animations() { return this._animationSet.values(); }
+    get animationCreators() { return [...this._animationCreatorSet.values()]; }
+    get animationCreatorSet() { return this._animationCreatorSet; }
+    get actorSet() { return this._actorSet; }
+    get assetSet() { return this._assetSet; }
+    get assetCreatorSet() { return this._assetCreatorSet; }
+    get userSet() { return this._userSet; }
+    get rootActors() {
+        return this.actors.filter(a => !a.initialization.message.payload.actor.parentId);
+    }
+    get authoritativeClient() { return this.clients.find(client => client.authoritative); }
+    get peerAuthoritative() { return this._peerAuthoritative; }
+    /**
+     * Performs handshake and sync with the app
+     */
+    async connect() {
+        try {
+            const handshake = this._protocol = new internal_1.SessionHandshake(this);
+            await handshake.run();
+            const sync = this._protocol = new internal_1.SessionSync(this);
+            await sync.run();
+            const execution = this._protocol = new internal_1.SessionExecution(this);
+            execution.on('recv', message => this.recvFromApp(message));
+            execution.startListening();
+        }
+        catch (e) {
+            __1.log.error('network', e);
+            this.disconnect();
+        }
+    }
+    disconnect() {
+        try {
+            this._conn.off('close', this._disconnect);
+            this._conn.off('error', this._disconnect);
+            this._conn.close();
+            this.emit('close');
+        }
+        catch (_a) { }
+    }
+    /**
+     * Adds the client to the session
+     */
+    async join(client) {
+        try {
+            this._clientSet.set(client.id, client);
+            client.on('close', () => this.leave(client.id));
+            // Synchronize app state to the client.
+            await client.join(this);
+            // Once the client is joined, further messages from the client will be processed by the session
+            // (as opposed to a protocol class).
+            client.on('recv', (_, message) => this.recvFromClient(client, message));
+            // If we don't have an authoritative client, make this client authoritative.
+            if (!this.authoritativeClient) {
+                this.setAuthoritativeClient(client.id);
+            }
+        }
+        catch (e) {
+            __1.log.error('network', e);
+            this.leave(client.id);
+        }
+    }
+    /**
+     * Removes the client from the session
+     */
+    leave(clientId) {
+        try {
+            const client = this._clientSet.get(clientId);
+            this._clientSet.delete(clientId);
+            if (client) {
+                // If the client is associated with a userId, inform app the user is leaving
+                if (client.userId) {
+                    this.protocol.sendPayload({
+                        type: 'user-left',
+                        userId: client.userId
+                    });
+                }
+                // Select another client to be the authoritative peer.
+                // TODO: Make selection criteria more intelligent (look at latency, prefer non-mobile, ...)
+                if (client.authoritative) {
+                    const nextClient = this.clients.find(c => c.isJoined());
+                    if (nextClient) {
+                        this.setAuthoritativeClient(nextClient.id);
+                    }
+                }
+            }
+            // If this was the last client then shutdown the session
+            if (!this.clients.length) {
+                this._conn.close();
+            }
+        }
+        catch (_a) { }
+    }
+    setAuthoritativeClient(clientId) {
+        const newAuthority = this._clientSet.get(clientId);
+        if (!newAuthority) {
+            __1.log.error('network', `[ERROR] setAuthoritativeClient: client ${clientId} does not exist.`);
+            return;
+        }
+        const oldAuthority = this.authoritativeClient;
+        newAuthority.setAuthoritative(true);
+        for (const client of this.clients.filter(c => c !== newAuthority)) {
+            client.setAuthoritative(false);
+        }
+        // if client user id is known emit signal about authoritative simulation owner
+        if (newAuthority.userId) {
+            newAuthority.session.emit('set-authoritative', newAuthority.userId);
+        }
+        // forward connection quality metrics
+        if (this.conn instanceof internal_1.EventedConnection) {
+            this.conn.linkConnectionQuality(newAuthority.conn.quality);
+        }
+        // forward network stats from the authoritative peer connection to the app
+        const toApp = this.conn instanceof internal_1.EventedConnection ? this.conn : null;
+        const forwardIncoming = (bytes) => toApp.statsTracker.recordIncoming(bytes);
+        const forwardOutgoing = (bytes) => toApp.statsTracker.recordOutgoing(bytes);
+        const toNewAuthority = newAuthority.conn instanceof internal_1.EventedConnection ? newAuthority.conn : null;
+        if (toNewAuthority) {
+            toNewAuthority.statsTracker.on('incoming', forwardIncoming);
+            toNewAuthority.statsTracker.on('outgoing', forwardOutgoing);
+        }
+        // turn off old authority
+        const toOldAuthority = oldAuthority && oldAuthority.conn instanceof internal_1.EventedConnection
+            ? oldAuthority.conn : null;
+        if (toOldAuthority) {
+            toOldAuthority.statsTracker.off('incoming', forwardIncoming);
+            toOldAuthority.statsTracker.off('outgoing', forwardOutgoing);
+        }
+    }
+    preprocessFromApp(message) {
+        const rule = internal_1.Rules[message.payload.type] || internal_1.MissingRule;
+        const beforeReceiveFromApp = rule.session.beforeReceiveFromApp || (() => message);
+        return beforeReceiveFromApp(this, message);
+    }
+    preprocessFromClient(client, message) {
+        // Precaution: If we don't recognize this client, drop the message.
+        if (!this._clientSet.has(client.id)) {
+            return undefined;
+        }
+        if (message.payload && message.payload.type && message.payload.type.length) {
+            const rule = internal_1.Rules[message.payload.type] || internal_1.MissingRule;
+            const beforeReceiveFromClient = rule.session.beforeReceiveFromClient || (() => message);
+            message = beforeReceiveFromClient(this, client, message);
+        }
+        return message;
+    }
+    sendToApp(message) {
+        this.protocol.sendMessage(message);
+    }
+    sendToClients(message, filterFn) {
+        const clients = this.clients.filter(filterFn || (() => true));
+        if (!message.id) {
+            message.id = __1.newGuid();
+        }
+        const msgBuffer = Buffer.from(JSON.stringify(message, (key, value) => {
+            internal_1.validateJsonFieldName(key);
+            return internal_1.filterEmpty(value);
+        }), 'utf8');
+        for (const client of clients) {
+            client.send(message, null, msgBuffer);
+        }
+    }
+    sendPayloadToClients(payload, filterFn) {
+        this.sendToClients({ payload }, filterFn);
+    }
+    isAnimating(syncActor) {
+        var _a, _b, _c, _d;
+        const actorAnims = [...this.animationSet.values()]
+            .filter(syncAnim => syncAnim.targetIds.includes(syncActor.actorId) && syncAnim.active);
+        if (actorAnims.length > 0) {
+            return true;
+        }
+        const parent = this._actorSet.get((_d = (_c = (_b = (_a = syncActor.initialization) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.payload) === null || _c === void 0 ? void 0 : _c.actor) === null || _d === void 0 ? void 0 : _d.parentId);
+        if (parent) {
+            return this.isAnimating(parent);
+        }
+        return false;
+    }
+    cacheInitializeActorMessage(message) {
+        let syncActor = this.actorSet.get(message.payload.actor.id);
+        if (!syncActor) {
+            const parent = this.actorSet.get(message.payload.actor.parentId);
+            syncActor = {
+                actorId: message.payload.actor.id,
+                exclusiveToUser: parent && parent.exclusiveToUser
+                    || message.payload.actor.exclusiveToUser,
+                initialization: deepmerge_1.default({ message }, {})
+            };
+            this.actorSet.set(message.payload.actor.id, syncActor);
+            // update reserved actor init message with something the client can use
+        }
+        else if (syncActor.initialization.message.payload.type === 'x-reserve-actor') {
+            // send real init message, but with session's initial actor state
+            message.payload = Object.assign(Object.assign({}, message.payload), { actor: syncActor.initialization.message.payload.actor });
+            // write the merged message back to the session
+            syncActor.initialization.message = message;
+        }
+    }
+    cacheActorUpdateMessage(message) {
+        const syncActor = this.actorSet.get(message.payload.actor.id);
+        if (syncActor) {
+            // Merge the update into the existing actor.
+            syncActor.initialization.message.payload.actor
+                = deepmerge_1.default(syncActor.initialization.message.payload.actor, message.payload.actor);
+            // strip out transform data that wasn't updated
+            // so it doesn't desync from the updated one
+            const cacheTransform = syncActor.initialization.message.payload.actor.transform;
+            const patchTransform = message.payload.actor.transform;
+            if (patchTransform && patchTransform.app && cacheTransform.local) {
+                delete cacheTransform.local.position;
+                delete cacheTransform.local.rotation;
+            }
+            else if (patchTransform && patchTransform.local) {
+                delete cacheTransform.app;
+            }
+        }
+    }
+    cacheAssetCreationRequest(message) {
+        this.assetCreatorSet.set(message.id, message);
+    }
+    cacheAssetCreation(assetId, creatorId, duration) {
+        const syncAsset = {
+            id: assetId,
+            creatorMessageId: creatorId,
+            duration
+        };
+        this.assetSet.set(assetId, syncAsset);
+        const creator = this.assetCreatorSet.get(creatorId);
+        // Updates are cached on send, creates are cached on receive,
+        // so it's possible something was updated while it was loading.
+        // Merge those updates into creation once the create comes back.
+        if (creator.payload.type === 'create-asset' && syncAsset.update) {
+            creator.payload.definition = deepmerge_1.default(creator.payload.definition, syncAsset.update.payload.asset);
+            syncAsset.update = undefined;
+        }
+        // update end times on playing media instances with the now-known duration
+        for (const syncActor of this.actorSet.values()) {
+            for (const activeMediaInstance of (syncActor.activeMediaInstances || [])) {
+                if (activeMediaInstance.message.payload.mediaAssetId !== assetId ||
+                    activeMediaInstance.message.payload.options.looping === true ||
+                    activeMediaInstance.message.payload.options.paused === true ||
+                    duration === undefined) {
+                    continue;
+                }
+                let timeRemaining = syncAsset.duration;
+                if (activeMediaInstance.message.payload.options.time !== undefined) {
+                    timeRemaining -= activeMediaInstance.message.payload.options.time;
+                }
+                if (activeMediaInstance.message.payload.options.pitch !== undefined) {
+                    timeRemaining /= Math.pow(2.0, (activeMediaInstance.message.payload.options.pitch / 12.0));
+                }
+                activeMediaInstance.expirationTime = activeMediaInstance.basisTime + timeRemaining;
+            }
+        }
+    }
+    cacheAssetUpdate(update) {
+        if (!this.assetSet.has(update.payload.asset.id)) {
+            this.assetSet.set(update.payload.asset.id, { id: update.payload.asset.id });
+        }
+        const syncAsset = this.assetSet.get(update.payload.asset.id);
+        const creator = this.assetCreatorSet.get(syncAsset.creatorMessageId);
+        if (creator && creator.payload.type === 'create-asset') {
+            // roll update into creation message
+            creator.payload.definition = deepmerge_1.default(creator.payload.definition, update.payload.asset);
+        }
+        else if (syncAsset.update) {
+            // merge with previous update message
+            syncAsset.update.payload.asset = deepmerge_1.default(syncAsset.update.payload.asset, update.payload.asset);
+        }
+        else {
+            // just save it
+            syncAsset.update = update;
+        }
+    }
+    cacheAssetUnload(containerId) {
+        const creators = this.assetCreators.filter(c => c.payload.containerId === containerId);
+        for (const creator of creators) {
+            // un-cache creation message
+            this.assetCreatorSet.delete(creator.id);
+            // un-cache created assets
+            const assets = this.assets.filter(a => a.creatorMessageId === creator.id);
+            for (const asset of assets) {
+                this.assetSet.delete(asset.id);
+            }
+        }
+    }
+    cacheAnimationCreationRequest(message) {
+        this._animationCreatorSet.set(message.id, message);
+        if (message.payload.type === 'create-animation-2') {
+            const createAnim = message.payload;
+            this._animationSet.set(createAnim.animation.id, {
+                id: createAnim.animation.id,
+                creatorMessageId: message.id,
+                targetIds: Object.values(createAnim.targets)
+            });
+        }
+    }
+    cacheAnimationCreation(creatorId, def) {
+        const animCreationResult = {
+            id: def.id,
+            creatorMessageId: creatorId,
+            targetIds: [...def.targetIds],
+            active: def.weight > 0 && def.speed !== 0
+        };
+        const oldAnim = this._animationSet.get(def.id);
+        if (!oldAnim) {
+            this._animationSet.set(def.id, animCreationResult);
+        }
+        else {
+            // the only field we didn't already know at creation
+            oldAnim.active = def.weight > 0 && def.speed !== 0;
+        }
+    }
+    cacheAnimationUpdate(update) {
+        const syncAnim = this._animationSet.get(update.payload.animation.id);
+        if (syncAnim.update) {
+            // merge with previous update message
+            syncAnim.update.payload.animation = deepmerge_1.default(syncAnim.update.payload.animation, update.payload.animation);
+        }
+        else {
+            // just save it
+            syncAnim.update = update;
+        }
+        syncAnim.active = syncAnim.update.payload.animation.weight > 0 &&
+            syncAnim.update.payload.animation.speed !== 0;
+    }
+    cacheAnimationUnload(message) {
+        for (const id of message.payload.animationIds) {
+            const syncAnim = this._animationSet.get(id);
+            this._animationCreatorSet.delete(syncAnim.creatorMessageId);
+            this._animationSet.delete(id);
+        }
+    }
+}
+exports.Session = Session;
+//# sourceMappingURL=session.js.map

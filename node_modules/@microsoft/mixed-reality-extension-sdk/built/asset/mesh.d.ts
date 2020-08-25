@@ -1,0 +1,52 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { AssetContainer, AssetLike, AssetUserType, PrimitiveDefinition, Vector3, Vector3Like } from '..';
+import { Patchable } from '../internal';
+import { AssetInternal } from './assetInternal';
+import { Asset } from './asset';
+/** Describes the properties of a mesh */
+export interface MeshLike {
+    /** The number of vertices in this mesh. */
+    vertexCount: number;
+    /** The number of triangles in this mesh. */
+    triangleCount: number;
+    /** The size of the axis-aligned box that exactly contains the mesh */
+    boundingBoxDimensions: Vector3Like;
+    /** The center of the axis-aligned box that exactly contains the mesh */
+    boundingBoxCenter: Vector3Like;
+    /** If this mesh is a primitive, the primitive's description */
+    primitiveDefinition: PrimitiveDefinition;
+}
+/** Represents a mesh on an actor */
+export declare class Mesh extends Asset implements MeshLike, Patchable<AssetLike> {
+    private _internal;
+    private _vertexCount;
+    private _triangleCount;
+    private _dimensions;
+    private _center;
+    private _primDef;
+    /** @hidden */
+    get internal(): AssetInternal;
+    /** @inheritdoc */
+    get vertexCount(): number;
+    /** @inheritdoc */
+    get triangleCount(): number;
+    /** @inheritdoc */
+    get boundingBoxDimensions(): Vector3;
+    /** @inheritdoc */
+    get boundingBoxCenter(): Vector3;
+    /** @inheritdoc */
+    get primitiveDefinition(): PrimitiveDefinition;
+    /** @inheritdoc */
+    get mesh(): Mesh;
+    /** @hidden */
+    constructor(container: AssetContainer, def: AssetLike);
+    copy(from: Partial<AssetLike>): this;
+    /** @hidden */
+    toJSON(): AssetLike;
+    /** @hidden */
+    breakReference(ref: AssetUserType): void;
+}
+//# sourceMappingURL=mesh.d.ts.map

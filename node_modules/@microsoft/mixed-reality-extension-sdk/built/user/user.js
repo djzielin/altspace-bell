@@ -1,0 +1,118 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("..");
+const internal_1 = require("../internal");
+const userInternal_1 = require("./userInternal");
+class User {
+    /**
+     * PUBLIC METHODS
+     */
+    constructor(_context, _id) {
+        this._context = _context;
+        this._id = _id;
+        this._internal = new userInternal_1.UserInternal(this, this._context.internal);
+    }
+    /** @hidden */
+    get internal() { return this._internal; }
+    get context() { return this._context; }
+    get id() { return this._id; }
+    get name() { return this._name; }
+    /**
+     * This user's group memberships. Some actors will behave differently depending on
+     * if the user is in at least one of a set of groups. See [[GroupMask]].
+     */
+    get groups() {
+        if (!this._groups) {
+            this._groups = new __1.GroupMask(this._context);
+            this._groups.allowDefault = false;
+            this._groups.onChanged(() => this.userChanged('groups'));
+        }
+        return this._groups;
+    }
+    set groups(val) {
+        if (!val) {
+            if (this._groups) {
+                this._groups.clear();
+            }
+            return;
+        }
+        this._groups = val.getClean();
+        this._groups.allowDefault = false;
+        this._groups.onChanged(() => this.userChanged('groups'));
+        this.userChanged('groups');
+    }
+    /**
+     * A grab bag of miscellaneous, possibly host-dependent, properties.
+     */
+    get properties() { return Object.freeze(Object.assign({}, this._properties)); }
+    /**
+     * returnes true if has any stored permissions
+     */
+    get hasGrantedPermissions() {
+        return (this._grantedPermissions !== undefined) && (this._grantedPermissions.length > 0);
+    }
+    /** @inheritdoc */
+    get grantedPermissions() { return [...this._grantedPermissions]; }
+    /**
+     * Present the user with a modal dialog, and resolve with the response.
+     * @param text A message presented to the user.
+     * @param acceptInput Whether or not the dialog should include a text input field.
+     */
+    prompt(text, acceptInput = false) {
+        return this.internal.prompt(text, acceptInput);
+    }
+    /** @hidden */
+    copy(from) {
+        // Pause change detection while we copy the values into the actor.
+        const wasObserving = this.internal.observing;
+        this.internal.observing = false;
+        if (!from) {
+            return this;
+        }
+        if (from.id !== undefined) {
+            this._id = from.id;
+        }
+        if (from.name !== undefined) {
+            this._name = from.name;
+        }
+        if (from.properties !== undefined) {
+            this._properties = from.properties;
+        }
+        if (from.groups !== undefined) {
+            if (typeof from.groups === 'number') {
+                this.groups.setPacked(from.groups);
+            }
+            else {
+                this.groups = from.groups;
+            }
+        }
+        if (from.grantedPermissions !== undefined) {
+            this._grantedPermissions = from.grantedPermissions;
+        }
+        this.internal.observing = wasObserving;
+        return this;
+    }
+    /** @hidden */
+    toJSON() {
+        return {
+            id: this.id,
+            name: this.name,
+            groups: this.groups.packed(),
+            properties: this.properties,
+            grantedPermissions: this.grantedPermissions
+        };
+    }
+    userChanged(...path) {
+        if (this.internal.observing) {
+            this.internal.patch = this.internal.patch || {};
+            internal_1.readPath(this, this.internal.patch, ...path);
+            this.context.internal.incrementGeneration();
+        }
+    }
+}
+exports.User = User;
+//# sourceMappingURL=user.js.map

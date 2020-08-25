@@ -1,0 +1,14 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/** A string composed hexadecimal characters in groups of 8, 4, 4, 4, and 12, separated by dashes (`-`). */
+export interface Guid extends String {
+    __is_guid: never;
+}
+/** Convert a string to a Guid */
+export declare function parseGuid(val: string): Guid;
+export declare function newGuid(): Guid;
+export declare const ZeroGuidString = "00000000-0000-0000-0000-000000000000";
+export declare const ZeroGuid: Guid;
+//# sourceMappingURL=guid.d.ts.map

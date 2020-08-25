@@ -1,0 +1,576 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+const __1 = require("..");
+const internal_1 = require("../internal");
+/**
+ * @hidden
+ */
+class ContextInternal {
+    constructor(context) {
+        this.context = context;
+        this.actorSet = new Map();
+        this.userSet = new Map();
+        this.userGroupMapping = { default: 1 };
+        this.assetContainers = new Set();
+        this.animationSet = new Map();
+        this.generation = 0;
+        this.prevGeneration = 0;
+        this._rigidBodyOwnerMap = new Map();
+        this._rigidBodyOrphanSet = new Set();
+        this.onSetAuthoritative = (userId) => {
+            this._rigidBodyOrphanSet.forEach((value) => {
+                if (value === this._rigidBodyDefaultOwner) {
+                    const actor = this.actorSet.get(value);
+                    actor.owner = userId;
+                    this._rigidBodyOwnerMap.set(value, userId);
+                }
+            });
+            this._rigidBodyOrphanSet.clear();
+            this._rigidBodyDefaultOwner = userId;
+        };
+        this.onClose = () => {
+            this.stop();
+        };
+        // Handle connection close events.
+        this.onClose = this.onClose.bind(this);
+        this.context.conn.on('close', this.onClose);
+        // keep track of authoritative simulation user id
+        this.onSetAuthoritative = this.onSetAuthoritative.bind(this);
+    }
+    Create(options) {
+        return this.createActorFromPayload(Object.assign(Object.assign({}, options), { actor: Object.assign(Object.assign({}, (options && options.actor)), { id: __1.newGuid() }), type: 'create-empty' }));
+    }
+    CreateFromLibrary(options) {
+        return this.createActorFromPayload(Object.assign(Object.assign({}, options), { actor: Object.assign(Object.assign({}, (options && options.actor)), { id: __1.newGuid() }), type: 'create-from-library' }));
+    }
+    CreateFromPrefab(options) {
+        return this.createActorFromPayload(Object.assign(Object.assign({}, options), { actor: Object.assign(Object.assign({}, (options && options.actor)), { id: __1.newGuid() }), type: 'create-from-prefab' }));
+    }
+    createActorFromPayload(payload) {
+        var _a, _b;
+        // Resolve by-reference values now, ensuring they won't change in the
+        // time between now and when this message is actually sent.
+        payload.actor = __1.Actor.sanitize(payload.actor);
+        // Create the actor locally.
+        this.updateActors(payload.actor);
+        // Get a reference to the new actor.
+        const actor = this.context.actor(payload.actor.id);
+        // check permission for exclusive actors
+        let user;
+        if (actor.exclusiveToUser) {
+            user = this.userSet.get(actor.exclusiveToUser);
+            if (user.hasGrantedPermissions &&
+                !(user.grantedPermissions.includes(__1.Permissions.UserInteraction))) {
+                actor.internal.notifyCreated(false, `Permission denied on user ${user.id} (${user.name}). Either this MRE did not ` +
+                    "request the UserInteraction permission, or it was denied by the user.");
+            }
+        }
+        // check permission for attachments
+        if ((_a = actor.attachment) === null || _a === void 0 ? void 0 : _a.userId) {
+            user = this.userSet.get((_b = actor.attachment) === null || _b === void 0 ? void 0 : _b.userId);
+            if (user.hasGrantedPermissions &&
+                !(user.grantedPermissions.includes(__1.Permissions.UserInteraction))) {
+                actor.internal.notifyCreated(false, `Permission denied on user ${user.id} (${user.name}). Either this MRE did not ` +
+                    "request the UserInteraction permission, or it was denied by the user.");
+            }
+        }
+        this.protocol.sendPayload(payload, {
+            resolve: (replyPayload) => {
+                this.protocol.recvPayload(replyPayload);
+                let success;
+                let message;
+                if (replyPayload.type === 'operation-result') {
+                    success = replyPayload.resultCode !== 'error';
+                    message = replyPayload.message;
+                }
+                else {
+                    success = replyPayload.result.resultCode !== 'error';
+                    message = replyPayload.result.message;
+                    for (const createdAnimLike of replyPayload.animations) {
+                        if (!this.animationSet.has(createdAnimLike.id)) {
+                            const createdAnim = new __1.Animation(this.context, createdAnimLike.id);
+                            createdAnim.copy(createdAnimLike);
+                            this.animationSet.set(createdAnimLike.id, createdAnim);
+                        }
+                    }
+                    for (const createdActorLike of replyPayload.actors) {
+                        const createdActor = this.actorSet.get(createdActorLike.id);
+                        if (createdActor) {
+                            createdActor.internal.notifyCreated(success, replyPayload.result.message);
+                        }
+                    }
+                }
+                if (success) {
+                    if (!actor.collider && actor.internal.behavior) {
+                        __1.log.warning('app', 'Behaviors will not function on Unity host apps without adding a'
+                            + ' collider to this actor first. Recommend adding a primitive collider'
+                            + ' to this actor.');
+                    }
+                    actor.internal.notifyCreated(true);
+                }
+                else {
+                    actor.internal.notifyCreated(false, message);
+                }
+            },
+            reject: (reason) => {
+                actor.internal.notifyCreated(false, reason);
+            }
+        });
+        return actor;
+    }
+    CreateFromGltf(container, options) {
+        // create actor locally
+        options.actor = __1.Actor.sanitize(Object.assign(Object.assign({}, options.actor), { id: __1.newGuid() }));
+        this.updateActors(options.actor);
+        const actor = this.context.actor(options.actor.id);
+        // reserve actor so the pending actor is ready for commands
+        this.protocol.sendPayload({
+            type: 'x-reserve-actor',
+            actor: options.actor
+        });
+        // kick off asset loading
+        container.loadGltf(options.uri, options.colliderType)
+            .then(assets => {
+            if (!this.context.actor(actor.id)) {
+                // actor was destroyed, stop loading
+                return;
+            }
+            // once assets are done, find first prefab...
+            const prefab = assets.find(a => !!a.prefab);
+            if (!prefab) {
+                actor.internal.notifyCreated(false, `glTF contains no prefabs: ${options.uri}`);
+                return;
+            }
+            // ...and spawn it
+            this.createActorFromPayload({
+                type: 'create-from-prefab',
+                prefabId: prefab.id,
+                actor: options.actor
+            });
+        })
+            .catch(reason => actor.internal.notifyCreated(false, reason));
+        return actor;
+    }
+    async createAnimationFromData(dataId, targets, initialState) {
+        var _a;
+        // generate the anim immediately
+        const data = (_a = this.lookupAsset(dataId)) === null || _a === void 0 ? void 0 : _a.animationData;
+        if (!data) {
+            throw new Error(`No animation data with id "${dataId}" found.`);
+        }
+        const createdAnim = new __1.Animation(this.context, __1.newGuid());
+        createdAnim.copy(Object.assign(Object.assign({ name: data.name }, initialState), { dataId, targetIds: Object.values(targets) }));
+        this.animationSet.set(createdAnim.id, createdAnim);
+        data.addReference(createdAnim);
+        const reply = await this.sendPayloadAndGetReply({
+            type: 'create-animation-2',
+            animation: createdAnim.toJSON(),
+            targets
+        });
+        if (reply.result.resultCode !== 'error') {
+            createdAnim.copy(reply.animations[0]);
+            return createdAnim;
+        }
+        else {
+            throw new Error(reply.result.message);
+        }
+    }
+    setMediaState(mediaInstance, command, options, mediaAssetId) {
+        this.protocol.sendPayload({
+            type: 'set-media-state',
+            id: mediaInstance.id,
+            actorId: mediaInstance.actor.id,
+            mediaAssetId,
+            mediaCommand: command,
+            options
+        });
+    }
+    async startListening() {
+        try {
+            // Startup the handshake protocol.
+            const handshake = this.protocol =
+                new internal_1.Protocols.Handshake(this.context.conn, this.context.sessionId, internal_1.OperatingModel.ServerAuthoritative);
+            await handshake.run();
+            // Switch to execution protocol.
+            const execution = this.protocol = new internal_1.Protocols.Execution(this.context);
+            execution.on('protocol.update-actors', this.updateActors.bind(this));
+            execution.on('protocol.destroy-actors', this.localDestroyActors.bind(this));
+            execution.on('protocol.user-joined', this.userJoined.bind(this));
+            execution.on('protocol.user-left', this.userLeft.bind(this));
+            execution.on('protocol.update-user', this.updateUser.bind(this));
+            execution.on('protocol.perform-action', this.performAction.bind(this));
+            execution.on('protocol.physicsbridge-update-transforms', this.updatePhysicsBridgeTransforms.bind(this));
+            execution.on('protocol.physicsbridge-server-transforms-upload', this.updatePhysicsServerTransformsUpload.bind(this));
+            execution.on('protocol.receive-rpc', this.receiveRPC.bind(this));
+            execution.on('protocol.collision-event-raised', this.collisionEventRaised.bind(this));
+            execution.on('protocol.trigger-event-raised', this.triggerEventRaised.bind(this));
+            execution.on('protocol.update-animations', this.updateAnimations.bind(this));
+            // Startup the execution protocol
+            execution.startListening();
+        }
+        catch (e) {
+            __1.log.error('app', e);
+        }
+    }
+    start() {
+        if (!this.interval) {
+            this.interval = setInterval(() => this.update(), 0);
+            this.context.emitter.emit('started');
+        }
+    }
+    stop() {
+        try {
+            if (this.interval) {
+                this.protocol.stopListening();
+                clearInterval(this.interval);
+                this.interval = undefined;
+                this.context.emitter.emit('stopped');
+                this.context.emitter.removeAllListeners();
+            }
+        }
+        catch (_a) { }
+    }
+    incrementGeneration() {
+        this.generation++;
+    }
+    assetsIterable() {
+        return new __1.AssetContainerIterable([...this.assetContainers]);
+    }
+    update() {
+        // Early out if no state changes occurred.
+        if (this.generation === this.prevGeneration) {
+            return;
+        }
+        this.prevGeneration = this.generation;
+        const syncObjects = [
+            ...this.actorSet.values(),
+            ...this.assetsIterable(),
+            ...this.userSet.values(),
+            ...this.animationSet.values()
+        ];
+        const maxUpdatesPerTick = parseInt(process.env.MRE_MAX_UPDATES_PER_TICK) || 300;
+        let updates = 0;
+        for (const patchable of syncObjects) {
+            if (updates >= maxUpdatesPerTick) {
+                break;
+            }
+            const patch = patchable.internal.getPatchAndReset();
+            if (!patch) {
+                continue;
+            }
+            else {
+                updates++;
+            }
+            if (patchable instanceof __1.User) {
+                this.protocol.sendPayload({
+                    type: 'user-update',
+                    user: patch
+                });
+            }
+            else if (patchable instanceof __1.Actor) {
+                this.protocol.sendPayload({
+                    type: 'actor-update',
+                    actor: patch
+                });
+            }
+            else if (patchable instanceof __1.Animation) {
+                this.protocol.sendPayload({
+                    type: 'animation-update',
+                    animation: patch
+                });
+            }
+            else if (patchable instanceof __1.Asset) {
+                this.protocol.sendPayload({
+                    type: 'asset-update',
+                    asset: patch
+                });
+            }
+        }
+        // only run if we finished sending all pending updates
+        if (updates < maxUpdatesPerTick && this.nextUpdatePromise) {
+            this.resolveNextUpdatePromise();
+            this.nextUpdatePromise = null;
+            this.resolveNextUpdatePromise = null;
+        }
+    }
+    /** @hidden */
+    nextUpdate() {
+        if (this.nextUpdatePromise) {
+            return this.nextUpdatePromise;
+        }
+        return this.nextUpdatePromise = new Promise(resolve => {
+            this.resolveNextUpdatePromise = resolve;
+        });
+    }
+    sendDestroyActors(actorIds) {
+        if (actorIds.length) {
+            this.protocol.sendPayload({
+                type: 'destroy-actors',
+                actorIds,
+            });
+        }
+    }
+    updateActors(sactors) {
+        if (!sactors) {
+            return;
+        }
+        if (!Array.isArray(sactors)) {
+            sactors = [sactors];
+        }
+        const newActorIds = [];
+        // Instantiate and store each actor.
+        sactors.forEach(sactor => {
+            const isNewActor = !this.actorSet.get(sactor.id);
+            const actor = isNewActor ? __1.Actor.alloc(this.context, sactor.id) : this.actorSet.get(sactor.id);
+            this.actorSet.set(sactor.id, actor);
+            actor.copy(sactor);
+            if (isNewActor) {
+                newActorIds.push(actor.id);
+                if (actor.rigidBody) {
+                    if (!actor.owner) {
+                        actor.owner = this._rigidBodyDefaultOwner;
+                    }
+                    this._rigidBodyOwnerMap.set(actor.id, actor.owner);
+                }
+            }
+        });
+        newActorIds.forEach(actorId => {
+            const actor = this.actorSet.get(actorId);
+            this.context.emitter.emit('actor-created', actor);
+        });
+    }
+    updatePhysicsBridgeTransforms(transforms) {
+        if (!transforms) {
+            return;
+        }
+        this.context.emitter.emit('physicsbridge-transforms-update', transforms);
+    }
+    updatePhysicsServerTransformsUpload(transforms) {
+        if (!transforms) {
+            return;
+        }
+        this.context.emitter.emit('physicsbridge-server-transforms-upload', transforms);
+    }
+    updateAnimations(animPatches) {
+        if (!animPatches) {
+            return;
+        }
+        const newAnims = [];
+        for (const patch of animPatches) {
+            if (this.animationSet.has(patch.id)) {
+                this.animationSet.get(patch.id).copy(patch);
+                continue;
+            }
+            const newAnim = new __1.Animation(this.context, patch.id);
+            this.animationSet.set(newAnim.id, newAnim);
+            newAnim.copy(patch);
+            newAnims.push(newAnim);
+        }
+        for (const anim of newAnims) {
+            this.context.emitter.emit('animation-created', anim);
+        }
+    }
+    sendPayload(payload, promise) {
+        this.protocol.sendPayload(payload, promise);
+    }
+    sendPayloadAndGetReply(payload) {
+        return new Promise((resolve, reject) => {
+            this.protocol.sendPayload(payload, { resolve, reject });
+        });
+    }
+    receiveRPC(payload) {
+        this.context.receiveRPC(payload);
+    }
+    userJoined(suser) {
+        if (!this.userSet.has(suser.id)) {
+            const user = new __1.User(this.context, suser.id);
+            this.userSet.set(suser.id, user);
+            user.copy(suser);
+            this.context.emitter.emit('user-joined', user);
+        }
+    }
+    userLeft(userId) {
+        const user = this.userSet.get(userId);
+        if (user) {
+            this.userSet.delete(userId);
+            this.context.emitter.emit('user-left', user);
+            if (userId !== this._rigidBodyDefaultOwner) {
+                this._rigidBodyOwnerMap.forEach((value, key) => {
+                    if (value === userId) {
+                        const actor = this.actorSet.get(key);
+                        actor.owner = this._rigidBodyDefaultOwner;
+                        this._rigidBodyOwnerMap.set(key, this._rigidBodyDefaultOwner);
+                    }
+                });
+            }
+            else {
+                this._rigidBodyOwnerMap.forEach((value, key) => {
+                    if (value === userId) {
+                        const actor = this.actorSet.get(key);
+                        actor.owner = this._rigidBodyDefaultOwner;
+                        this._rigidBodyOrphanSet.add(key);
+                    }
+                });
+            }
+        }
+    }
+    updateUser(suser) {
+        let user = this.userSet.get(suser.id);
+        if (!user) {
+            user = new __1.User(this.context, suser.id);
+            user.copy(suser);
+            this.userSet.set(user.id, user);
+            this.context.emitter.emit('user-joined', user);
+        }
+        else {
+            user.copy(suser);
+            this.context.emitter.emit('user-updated', user);
+        }
+    }
+    performAction(actionEvent) {
+        if (actionEvent.user) {
+            const targetActor = this.actorSet.get(actionEvent.targetId);
+            if (targetActor) {
+                if (actionEvent.actionName === 'grab' && targetActor.rigidBody) {
+                    if (targetActor.owner !== actionEvent.user.id) {
+                        targetActor.owner = actionEvent.user.id;
+                        this._rigidBodyOwnerMap.set(targetActor.id, targetActor.owner);
+                    }
+                }
+                targetActor.internal.performAction(actionEvent);
+            }
+        }
+    }
+    collisionEventRaised(collisionEvent) {
+        const actor = this.actorSet.get(collisionEvent.colliderOwnerId);
+        const otherActor = this.actorSet.get((collisionEvent.collisionData.otherActorId));
+        if (actor && otherActor) {
+            // Update the collision data to contain the actual other actor.
+            collisionEvent.collisionData = Object.assign(Object.assign({}, collisionEvent.collisionData), { otherActor });
+            actor.internal.collisionEventRaised(collisionEvent.eventType, collisionEvent.collisionData);
+        }
+    }
+    triggerEventRaised(triggerEvent) {
+        const actor = this.actorSet.get(triggerEvent.colliderOwnerId);
+        const otherActor = this.actorSet.get(triggerEvent.otherColliderOwnerId);
+        if (actor && otherActor) {
+            actor.internal.triggerEventRaised(triggerEvent.eventType, otherActor);
+        }
+    }
+    localDestroyActors(actorIds) {
+        for (const actorId of actorIds) {
+            if (this.actorSet.has(actorId)) {
+                this.localDestroyActor(this.actorSet.get(actorId));
+            }
+            if (this._rigidBodyOwnerMap.has(actorId)) {
+                this._rigidBodyOwnerMap.delete(actorId);
+            }
+        }
+    }
+    localDestroyActor(actor) {
+        // Recursively destroy children first
+        (actor.children || []).forEach(child => {
+            this.localDestroyActor(child);
+        });
+        // Remove actor from _actors
+        this.actorSet.delete(actor.id);
+        if (this._rigidBodyOwnerMap.has(actor.id)) {
+            this._rigidBodyOwnerMap.delete(actor.id);
+        }
+        // Check targeting animations for orphans
+        for (const anim of actor.targetingAnimations.values()) {
+            if (anim.isOrphan()) {
+                this.destroyAnimation(anim.id);
+            }
+        }
+        // Raise event
+        this.context.emitter.emit('actor-destroyed', actor);
+    }
+    destroyActor(actorId) {
+        const actor = this.actorSet.get(actorId);
+        if (actor) {
+            // Tell engine to destroy the actor (will destroy all children too)
+            this.sendDestroyActors([actorId]);
+            // Clean up the actor locally
+            this.localDestroyActor(actor);
+        }
+    }
+    destroyAnimation(animationId, cascadeIds = []) {
+        const shouldSendDestroyMessage = cascadeIds.length === 0;
+        cascadeIds.push(animationId);
+        /*const anim = this.animationSet.get(animationId);*/
+        this.animationSet.delete(animationId);
+        /*for (const targetingAnim of anim.targetingAnimations.values()) {
+            if (targetingAnim.isOrphan()) {
+                this.destroyAnimation(targetingAnim.id, cascadeIds);
+            }
+        }*/
+        if (shouldSendDestroyMessage) {
+            this.protocol.sendPayload({
+                type: 'destroy-animations',
+                animationIds: cascadeIds
+            });
+        }
+    }
+    sendRigidBodyCommand(actorId, payload) {
+        this.protocol.sendPayload({
+            type: 'rigidbody-commands',
+            actorId,
+            commandPayloads: [payload]
+        });
+    }
+    setBehavior(actorId, newBehaviorType) {
+        const actor = this.actorSet.get(actorId);
+        if (actor) {
+            this.protocol.sendPayload({
+                type: 'set-behavior',
+                actorId,
+                behaviorType: newBehaviorType || 'none'
+            });
+        }
+    }
+    lookupAsset(id) {
+        if (id === __1.ZeroGuid) {
+            return null;
+        }
+        for (const c of this.assetContainers) {
+            if (c.assetsById.has(id)) {
+                return c.assetsById.get(id);
+            }
+        }
+    }
+    getStats() {
+        const networkStats = this.protocol.conn.statsReport;
+        const stats = Object.assign({ actorCount: this.actorSet.size, actorWithMeshCount: 0, prefabCount: 0, materialCount: 0, textureCount: 0, texturePixelsTotal: 0, texturePixelsAverage: 0, meshCount: 0, meshVerticesTotal: 0, meshTrianglesTotal: 0, soundCount: 0, soundSecondsTotal: 0 }, networkStats);
+        for (const container of this.assetContainers) {
+            stats.prefabCount += container.prefabs.length;
+            stats.materialCount += container.materials.length;
+            stats.textureCount += container.textures.length;
+            stats.meshCount += container.meshes.length;
+            stats.soundCount += container.sounds.length;
+            for (const tex of container.textures) {
+                stats.texturePixelsTotal += (tex.texture.resolution.x || 0) * (tex.texture.resolution.y || 0);
+            }
+            for (const mesh of container.meshes) {
+                stats.meshTrianglesTotal += mesh.mesh.triangleCount || 0;
+                stats.meshVerticesTotal += mesh.mesh.vertexCount || 0;
+            }
+            for (const sound of container.sounds) {
+                stats.soundSecondsTotal += sound.sound.duration || 0;
+            }
+        }
+        stats.texturePixelsAverage = stats.texturePixelsTotal / (stats.textureCount || 1);
+        for (const actor of this.actorSet.values()) {
+            if (actor.appearance.activeAndEnabled && actor.appearance.mesh) {
+                stats.actorWithMeshCount += 1;
+            }
+        }
+        return stats;
+    }
+}
+exports.ContextInternal = ContextInternal;
+//# sourceMappingURL=contextInternal.js.map

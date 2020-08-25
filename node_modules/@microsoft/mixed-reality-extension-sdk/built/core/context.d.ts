@@ -1,0 +1,123 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/// <reference types="node" />
+import events from 'events';
+import { Actor, Guid, RPC, RPCChannels, User, UserEntryExitPoint } from '..';
+import { Connection, Payloads } from '../internal';
+import { ContextInternal } from './contextInternal';
+/**
+ * Settings used to configure a `Context` instance.
+ */
+export interface ContextSettings {
+    connection?: Connection;
+    sessionId?: string;
+}
+/**
+ * Container for an application session. The Context contains all application state for a session of your application.
+ * This includes Actors, Users, Assets, and other state.
+ */
+export declare class Context implements UserEntryExitPoint {
+    private _internal;
+    /** @hidden */
+    get internal(): ContextInternal;
+    private _emitter;
+    /** @hidden */
+    get emitter(): events.EventEmitter;
+    private _sessionId;
+    private _conn;
+    private _rpcChannels;
+    private _rpc;
+    get sessionId(): string;
+    get conn(): Connection;
+    /** The list of all actors in the MRE. */
+    get actors(): Actor[];
+    /** The list of actors with no parents, i.e. root actors. */
+    get rootActors(): Actor[];
+    /** The list of all animations. */
+    get animations(): import("..").Animation[];
+    /** The list of all users. */
+    get users(): User[];
+    get rpcChannels(): RPCChannels;
+    get rpc(): RPC;
+    /** Get an actor by ID. */
+    actor(actorId: Guid): Actor;
+    /** Get an animation by ID. */
+    animation(animId: Guid): import("..").Animation;
+    /** Get an asset by ID (from any asset container). */
+    asset(assetId: Guid): import("..").Asset;
+    /** Get a user by ID. */
+    user(userId: Guid): User;
+    /**
+     * Creates a new `Context` instance.
+     */
+    constructor(settings: ContextSettings);
+    /**
+     * Exits this context.
+     */
+    quit(): void;
+    /**
+     * The onStarted event is raised after the Context is fully initialized and ready for your application logic to
+     * start executing.
+     * @event
+     */
+    onStarted(handler: () => void): this;
+    /**
+     * The onStopped event is raised before the Context starts shutting down, which happens after the last user
+     * disconnects.
+     * @event
+     */
+    onStopped(handler: () => void): this;
+    /**
+     * The onUserJoined event is raised after a new user has joined the Context.
+     * @event
+     */
+    onUserJoined(handler: (user: User) => void): this;
+    /**
+     * Remove the onUserJoined event handler from the Context.
+     * @event
+     */
+    offUserJoined(handler: (user: User) => void): this;
+    /**
+     * The onUserLeft event is raised when the given user has left the Context. After the last user leaves, the Context
+     * will be shutdown (and a 'stopped' event will soon follow).
+     * @event
+     */
+    onUserLeft(handler: (user: User) => void): this;
+    /**
+     * Remove the onUserLeft event handler from the Context
+     * @event
+     */
+    offUserLeft(handler: (user: User) => void): this;
+    /**
+     * @hidden
+     * (for now)
+     */
+    onActorCreated(handler: (actor: Actor) => void): this;
+    /**
+     * @hidden
+     * (for now)
+     */
+    offActorCreated(handler: (actor: Actor) => void): this;
+    /**
+     * @hidden
+     * (for now)
+     */
+    onActorDestroyed(handler: (actor: Actor) => void): this;
+    /**
+     * @hidden
+     * (for now)
+     */
+    offActorDestroyed(handler: (actor: Actor) => void): this;
+    /**
+     * @hidden
+     */
+    receiveRPC(payload: Payloads.EngineToAppRPC): void;
+    /**
+     * Collect and return a snapshot of the current resource usage of the MRE subsystem. For Node process stats,
+     * use `process.resourceUsage()`.
+     */
+    getStats(): import("./performanceStats").PerformanceStats;
+}
+//# sourceMappingURL=context.d.ts.map

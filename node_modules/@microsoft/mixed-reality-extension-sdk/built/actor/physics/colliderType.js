@@ -1,0 +1,17 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * The type of the collider.
+ */
+var ColliderType;
+(function (ColliderType) {
+    ColliderType["Auto"] = "auto";
+    ColliderType["Box"] = "box";
+    ColliderType["Sphere"] = "sphere";
+    ColliderType["Capsule"] = "capsule";
+})(ColliderType = exports.ColliderType || (exports.ColliderType = {}));
+//# sourceMappingURL=colliderType.js.map

@@ -1,0 +1,111 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Actor, CollisionDetectionMode, QuaternionLike, RigidBodyConstraints, Vector3, Vector3Like } from '../..';
+/**
+ * Describes the properties of a Rigid Body
+ */
+export interface RigidBodyLike {
+    /** Whether the rigid body is enabled or not. */
+    enabled: boolean;
+    /** The velocity of the rigid body. */
+    velocity: Partial<Vector3Like>;
+    /** The angular velocity of the rigid body. */
+    angularVelocity: Partial<Vector3Like>;
+    /** The mass of the rigid body. */
+    mass: number;
+    /** Whether to detect collisions with this rigid body. */
+    detectCollisions: boolean;
+    /** The collision detection mode to use with this rigid body.  @see CollisionDetectionMode for options. */
+    collisionDetectionMode: CollisionDetectionMode;
+    /** Whether the rigid body is affected by gravity. */
+    useGravity: boolean;
+    /**
+     * Whether the rigid body is kinematic.  Note kinematic rigid bodies participate in collisions,
+     * but are not simulated by the rigid body.  This is useful for objects that should collide with
+     * other objects, but you want to control the position/rotation manually or animate them.
+     */
+    isKinematic: boolean;
+    /** The constraints that the rigid body is bound by.  @see RigidBodyConstraints for options. */
+    constraints: RigidBodyConstraints[];
+}
+/**
+ * Class that represents a rigid body found on an actor.
+ */
+export declare class RigidBody implements RigidBodyLike {
+    private $owner;
+    private _velocity;
+    private _angularVelocity;
+    private _constraints;
+    /** @inheritdoc */
+    enabled: boolean;
+    /** @inheritdoc */
+    mass: number;
+    /** @inheritdoc */
+    detectCollisions: boolean;
+    /** @inheritdoc */
+    collisionDetectionMode: CollisionDetectionMode;
+    /** @inheritdoc */
+    useGravity: boolean;
+    /** @inheritdoc */
+    isKinematic: boolean;
+    /**
+     * PUBLIC ACCESSORS
+     */
+    /** @inheritdoc */
+    get velocity(): Partial<Vector3>;
+    set velocity(value: Partial<Vector3>);
+    /** @inheritdoc */
+    get angularVelocity(): Partial<Vector3>;
+    set angularVelocity(value: Partial<Vector3>);
+    /** @inheritdoc */
+    get constraints(): RigidBodyConstraints[];
+    set constraints(value: RigidBodyConstraints[]);
+    /**
+     * PUBLIC METHODS
+     */
+    /**
+     * @hidden
+     * Creates a new RigidBody instance.
+     * @param $owner The owning actor instance. Field name is prefixed with a dollar sign so that it is ignored by
+     * the actor patch detection system.
+     */
+    constructor($owner: Actor);
+    /** @hidden */
+    copy(from: Partial<RigidBodyLike>): this;
+    /** @hidden */
+    toJSON(): RigidBodyLike;
+    /**
+     * Move the rigid body to the new position with interpolation where supported.
+     * @param position The position to move to.
+     */
+    movePosition(position: Partial<Vector3Like>): void;
+    /**
+     * Rotate the rigid body to the new rotation with interpolation where supported.
+     * @param rotation The new rotation to rotate to.
+     */
+    moveRotation(rotation: QuaternionLike): void;
+    /**
+     * Apply a force to the rigid body for physics to simulate.
+     * @param force The force to apply to the rigid body.
+     */
+    addForce(force: Partial<Vector3Like>): void;
+    /**
+     * Apply a force to the rigid body at a specific position for physics to simulate.
+     * @param force The force to apply to the rigid body.
+     * @param position The position at which to apply the force.  This should be in app coordinates.
+     */
+    addForceAtPosition(force: Partial<Vector3Like>, position: Partial<Vector3Like>): void;
+    /**
+     * Add a torque to the rigid body for physics to simulate.
+     * @param torque The torque to apply to the rigid body.
+     */
+    addTorque(torque: Partial<Vector3Like>): void;
+    /**
+     * Add a relative torque to the rigid body for physics to simulate.
+     * @param relativeTorque The relative torque to apply to the rigid body.
+     */
+    addRelativeTorque(relativeTorque: Partial<Vector3Like>): void;
+}
+//# sourceMappingURL=rigidbody.d.ts.map

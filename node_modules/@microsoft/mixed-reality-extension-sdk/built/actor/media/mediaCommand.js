@@ -1,0 +1,16 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * The media commands used to control the media instance.
+ */
+var MediaCommand;
+(function (MediaCommand) {
+    MediaCommand["Start"] = "start";
+    MediaCommand["Update"] = "update";
+    MediaCommand["Stop"] = "stop";
+})(MediaCommand = exports.MediaCommand || (exports.MediaCommand = {}));
+//# sourceMappingURL=mediaCommand.js.map

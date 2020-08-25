@@ -1,0 +1,53 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = require("events");
+/**
+ * @hidden
+ */
+class NetworkStatsTracker extends events_1.EventEmitter {
+    constructor() {
+        super();
+        this.buffer = [];
+        this.active = {
+            messageCount: 0,
+            trafficIn: 0,
+            trafficOut: 0
+        };
+        setInterval(() => this.cycleStatFrames(), 1000);
+    }
+    /** @private */
+    recordOutgoing(bytes) {
+        this.active.trafficOut += bytes / 1000;
+        this.active.messageCount++;
+        this.emit('outgoing', bytes);
+    }
+    /** @private */
+    recordIncoming(bytes) {
+        this.active.trafficIn += bytes / 1000;
+        this.active.messageCount++;
+        this.emit('incoming', bytes);
+    }
+    /** @private */
+    reportStats() {
+        const data = [this.buffer.slice(0, 1), this.buffer.slice(0, 5), this.buffer.slice(0, 30)];
+        return {
+            networkBandwidthIn: data.map(arr => arr.reduce((sum, f) => sum += f.trafficIn, 0) / (arr.length || 1)),
+            networkBandwidthOut: data.map(arr => arr.reduce((sum, f) => sum += f.trafficOut, 0) / (arr.length || 1)),
+            networkMessageCount: data.map(arr => arr.reduce((sum, f) => sum += f.messageCount, 0))
+        };
+    }
+    cycleStatFrames() {
+        this.buffer = [this.active, ...this.buffer.slice(0, 29)];
+        this.active = {
+            trafficIn: 0,
+            trafficOut: 0,
+            messageCount: 0
+        };
+    }
+}
+exports.NetworkStatsTracker = NetworkStatsTracker;
+//# sourceMappingURL=networkStats.js.map

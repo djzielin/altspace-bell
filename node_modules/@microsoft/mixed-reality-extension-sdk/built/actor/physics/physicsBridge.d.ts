@@ -1,0 +1,24 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Guid } from "../../util";
+import { TransformLike } from "..";
+export declare type PhysicsBridgeTransformUpdate = {
+    id: Guid;
+    time: number;
+    transformCount: number;
+    flags: number;
+    transformsBlob: string;
+};
+export declare type PhysicsServerOneTransformUpdate = {
+    localTransform: TransformLike;
+    appTransform: TransformLike;
+    actorGuid: Guid;
+};
+export declare type PhysicsUploadServerTransformsUpdate = {
+    id: Guid;
+    transformCount: number;
+    updates: PhysicsServerOneTransformUpdate[];
+};
+//# sourceMappingURL=physicsBridge.d.ts.map

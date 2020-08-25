@@ -1,0 +1,33 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { AssetContainer, AssetLike, AssetUserType } from '..';
+import { Patchable } from '../internal';
+import { AssetInternal } from './assetInternal';
+import { Asset } from './asset';
+export interface VideoStreamLike {
+    uri: string;
+    duration: number;
+}
+export declare class VideoStream extends Asset implements VideoStreamLike, Patchable<AssetLike> {
+    private _uri;
+    private _duration;
+    private _internal;
+    /** @hidden */
+    get internal(): AssetInternal;
+    /** The URI, if any, this videostream was loaded from */
+    get uri(): string;
+    /** The length of the loaded videostream in seconds */
+    get duration(): number;
+    /** @inheritdoc */
+    get videoStream(): VideoStreamLike;
+    /** @hidden */
+    constructor(container: AssetContainer, def: AssetLike);
+    copy(from: Partial<AssetLike>): this;
+    /** @hidden */
+    toJSON(): AssetLike;
+    /** @hidden */
+    breakReference(ref: AssetUserType): void;
+}
+//# sourceMappingURL=videoStream.d.ts.map

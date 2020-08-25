@@ -1,0 +1,86 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs_1 = require("fs");
+const path_1 = require("path");
+const util_1 = require("util");
+const readFile = util_1.promisify(fs_1.readFile);
+const internal_1 = require("../../internal");
+function parseEvent(network, contents) {
+    const e = {
+        input: network + '\n' + contents,
+        timestamp: new Date(network.split(' ', 2)[0]),
+        client: '',
+        networkContents: JSON.parse(contents.slice(contents.indexOf('{')))
+    };
+    const matches = /\bclient ([0-9a-f]{8})\b/u.exec(network);
+    if (matches !== null) {
+        e.client = matches[1];
+    }
+    else if (/\bSession/u.test(network)) {
+        e.client = 'session';
+    }
+    else {
+        return null;
+    }
+    if (/\brecv\b/u.test(network)) {
+        e.direction = 'from';
+    }
+    else if (/\bsend\b/u.test(network)) {
+        e.direction = 'to';
+    }
+    return e;
+}
+async function parseFile(filename) {
+    const fileContents = await readFile(path_1.resolve(process.cwd(), filename), { encoding: 'utf8' });
+    const lines = fileContents.split('\n');
+    const events = [];
+    for (let i = 0; i < lines.length; i++) {
+        if (!/\bnetwork-content\b/u.test(lines[i])) {
+            continue;
+        }
+        const e = parseEvent(lines[i - 1], lines[i]);
+        if (e !== null) {
+            events.push(e);
+        }
+    }
+    return events;
+}
+const columns = ['session'];
+const colWidth = 30;
+function formatEvent(event) {
+    if (!columns.includes(event.client)) {
+        columns.push(event.client);
+    }
+    const props = {
+        time: event.timestamp.toLocaleTimeString('en-US', { hour12: false }),
+        messageId: (internal_1.safeAccessPath(event, 'networkContents', 'id') || '').slice(0, 6),
+        replyToId: (internal_1.safeAccessPath(event, 'networkContents', 'replyToId') || '').slice(0, 6),
+        payloadType: internal_1.safeAccessPath(event, 'networkContents', 'payload', 'type'),
+        name: internal_1.safeAccessPath(event, 'networkContents', 'payload', 'definition', 'name')
+            || internal_1.safeAccessPath(event, 'networkContents', 'payload', 'actor', 'name')
+            || ''
+    };
+    if (event.client === 'session') {
+        const dir = event.direction === 'to' ? '<=' : '=>';
+        return `${props.time} (${props.messageId}) ${props.payloadType} ${props.name}${dir} ${props.replyToId}`;
+    }
+    else {
+        const replyTo = props.replyToId ? `(${props.replyToId}) ` : '';
+        const indentation = ' '.repeat(-replyTo.length + colWidth * columns.indexOf(event.client));
+        const dir = event.direction === 'from' ? '<=' : '=>';
+        return `${props.time} ${indentation}${replyTo}${dir} (${props.messageId}) ${props.payloadType} ${props.name}`;
+    }
+}
+async function main(filename) {
+    const events = await parseFile(filename);
+    const filterFn = (e) => !internal_1.safeAccessPath(e, 'networkContents', 'payload', 'type').includes('heartbeat');
+    for (const evt of events.filter(filterFn)) {
+        console.log(formatEvent(evt));
+    }
+}
+main(process.argv[2] || null).catch(e => console.error(e));
+//# sourceMappingURL=parseNetworkLogs.js.map

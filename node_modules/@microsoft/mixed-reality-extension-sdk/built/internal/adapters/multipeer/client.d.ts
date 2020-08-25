@@ -1,0 +1,60 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/// <reference types="node" />
+import { EventEmitter } from 'events';
+import semver from 'semver';
+import { Guid } from '../../..';
+import { Connection, ExportedPromise, Message, Payloads, Protocols, Session } from '../../../internal';
+/**
+ * @hidden
+ */
+export declare type QueuedMessage = {
+    message: Message;
+    promise?: ExportedPromise;
+    timeoutSeconds?: number;
+};
+/**
+ * @hidden
+ * Class representing a connection to an engine client
+ */
+export declare class Client extends EventEmitter {
+    private _conn;
+    private _version;
+    private static orderSequence;
+    private _id;
+    private _session;
+    private _protocol;
+    private _order;
+    private _queuedMessages;
+    private _userExclusiveMessages;
+    private _authoritative;
+    private _leave;
+    get id(): Guid;
+    get version(): semver.SemVer;
+    get order(): number;
+    get protocol(): Protocols.Protocol;
+    get session(): Session;
+    get conn(): Connection;
+    get authoritative(): boolean;
+    get queuedMessages(): QueuedMessage[];
+    get userExclusiveMessages(): QueuedMessage[];
+    userId: Guid;
+    /**
+     * Creates a new Client instance
+     */
+    constructor(_conn: Connection, _version: semver.SemVer);
+    setAuthoritative(value: boolean): void;
+    /**
+     * Syncs state with the client
+     */
+    join(session: Session): Promise<void>;
+    leave(): void;
+    isJoined(): boolean;
+    send(message: Message, promise?: ExportedPromise, serializedMessage?: Buffer): void;
+    sendPayload(payload: Partial<Payloads.Payload>, promise?: ExportedPromise): void;
+    queueMessage(message: Message, promise?: ExportedPromise, timeoutSeconds?: number): void;
+    filterQueuedMessages(callbackfn: (value: QueuedMessage) => any): QueuedMessage[];
+}
+//# sourceMappingURL=client.d.ts.map

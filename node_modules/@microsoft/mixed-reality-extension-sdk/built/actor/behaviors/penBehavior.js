@@ -1,0 +1,14 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const _1 = require(".");
+/**
+ * @hidden Pen behavior class containing the target behavior actions.
+ */
+class PenBehavior extends _1.ToolBehavior {
+}
+exports.PenBehavior = PenBehavior;
+//# sourceMappingURL=penBehavior.js.map

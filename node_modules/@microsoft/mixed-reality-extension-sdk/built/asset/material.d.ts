@@ -1,0 +1,116 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { AssetContainer, AssetLike, AssetUserType, Color3, Color3Like, Color4, Color4Like, Guid, Vector2, Vector2Like } from '..';
+import { Patchable } from '../internal';
+import { AssetInternal } from './assetInternal';
+import { Asset } from './asset';
+/**
+ * Describes the properties of a Material.
+ */
+export interface MaterialLike {
+    /** The base color of this material. */
+    color: Partial<Color4Like>;
+    /** The main (albedo) texture asset ID */
+    mainTextureId: Guid;
+    /** The main texture's offset from default */
+    mainTextureOffset: Vector2Like;
+    /** The main texture's scale from default */
+    mainTextureScale: Vector2Like;
+    /** The lighting-independent color of this material. */
+    emissiveColor: Partial<Color3Like>;
+    /** The emissive (unlit) texture asset ID */
+    emissiveTextureId: Guid;
+    /** The emissive texture's offset from default */
+    emissiveTextureOffset: Vector2Like;
+    /** The emissive texture's scale from default */
+    emissiveTextureScale: Vector2Like;
+    /** How the color/texture's alpha channel should be handled */
+    alphaMode: AlphaMode;
+    /** Visibility threshold in masked alpha mode */
+    alphaCutoff: number;
+}
+/**
+ * Controls how transparency is handled.
+ */
+export declare enum AlphaMode {
+    /** The object is rendered opaque, and transparency info is discarded. */
+    Opaque = "opaque",
+    /**
+     * Any parts with alpha above a certain cutoff ([[Material.alphaCutoff]])
+     * will be rendered solid. Everything else is fully transparent.
+     */
+    Mask = "mask",
+    /**
+     * A pixel's transparency is directly proportional to its alpha value.
+     */
+    Blend = "blend"
+}
+/**
+ * Represents a material on a mesh.
+ */
+export declare class Material extends Asset implements MaterialLike, Patchable<AssetLike> {
+    private _color;
+    private _mainTextureId;
+    private _mainTextureOffset;
+    private _mainTextureScale;
+    private _emissiveColor;
+    private _emissiveTextureId;
+    private _emissiveTextureOffset;
+    private _emissiveTextureScale;
+    private _alphaMode;
+    private _alphaCutoff;
+    private _internal;
+    /** @hidden */
+    get internal(): AssetInternal;
+    /** @inheritdoc */
+    get color(): Color4;
+    set color(value: Color4);
+    /** @returns A shared reference to this material's texture asset */
+    get mainTexture(): import("./texture").Texture;
+    set mainTexture(value: import("./texture").Texture);
+    /** @inheritdoc */
+    get mainTextureId(): Guid;
+    set mainTextureId(value: Guid);
+    /** @inheritdoc */
+    get mainTextureOffset(): Vector2;
+    set mainTextureOffset(value: Vector2);
+    /** @inheritdoc */
+    get mainTextureScale(): Vector2;
+    set mainTextureScale(value: Vector2);
+    /** @inheritdoc */
+    get emissiveColor(): Color3;
+    set emissiveColor(value: Color3);
+    /** @returns A shared reference to this material's texture asset */
+    get emissiveTexture(): import("./texture").Texture;
+    set emissiveTexture(value: import("./texture").Texture);
+    /** @inheritdoc */
+    get emissiveTextureId(): Guid;
+    set emissiveTextureId(value: Guid);
+    /** @inheritdoc */
+    get emissiveTextureOffset(): Vector2;
+    set emissiveTextureOffset(value: Vector2);
+    /** @inheritdoc */
+    get emissiveTextureScale(): Vector2;
+    set emissiveTextureScale(value: Vector2);
+    /** @inheritdoc */
+    get alphaMode(): AlphaMode;
+    set alphaMode(value: AlphaMode);
+    /** @inheritdoc */
+    get alphaCutoff(): number;
+    set alphaCutoff(value: number);
+    /** @inheritdoc */
+    get material(): Material;
+    /** The list of animations that target this actor, by ID. */
+    /** The list of animations that target this actor, by name. */
+    /** INTERNAL USE ONLY. To create a new material from scratch, use [[AssetManager.createMaterial]]. */
+    constructor(container: AssetContainer, def: AssetLike);
+    copy(from: Partial<AssetLike>): this;
+    /** @hidden */
+    toJSON(): AssetLike;
+    private materialChanged;
+    /** @hidden */
+    breakReference(ref: AssetUserType): void;
+}
+//# sourceMappingURL=material.d.ts.map

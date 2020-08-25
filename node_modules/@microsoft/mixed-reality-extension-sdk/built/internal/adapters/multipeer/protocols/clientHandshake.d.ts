@@ -1,0 +1,18 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Client, ExportedPromise, Message } from '../../..';
+import { Handshake } from '../../../protocols';
+/**
+ * @hidden
+ */
+export declare class ClientHandshake extends Handshake {
+    private client;
+    /** @override */
+    get name(): string;
+    constructor(client: Client, sessionId: string);
+    /** @override */
+    sendMessage(message: Message, promise?: ExportedPromise, timeoutSeconds?: number): void;
+}
+//# sourceMappingURL=clientHandshake.d.ts.map

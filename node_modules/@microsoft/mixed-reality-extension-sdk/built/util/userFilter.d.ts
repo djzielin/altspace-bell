@@ -1,0 +1,47 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { ActionHandler, Guid, User } from '..';
+/** A callback that handles when a user joins or leaves the MRE session */
+export declare type UserEntryExitCallback = (user: User) => void;
+/** An event type for [[UserFilter.shouldForwardUserEvent]] */
+export declare type UserInteractionType = 'joined' | 'input';
+/** A class that has user joined/left callback hooks. Applies to [[Context]], and also [[UserFilter]]s. */
+export interface UserEntryExitPoint {
+    users: User[];
+    onUserJoined(callback: UserEntryExitCallback): void;
+    onUserLeft(callback: UserEntryExitCallback): void;
+    offUserJoined(callback: UserEntryExitCallback): void;
+    offUserLeft(callback: UserEntryExitCallback): void;
+}
+/** Base class for classes that filter out users from MRE awareness */
+export declare abstract class UserFilter implements UserEntryExitPoint {
+    protected context: UserEntryExitPoint;
+    private joinedCallbacks;
+    private leftCallbacks;
+    /** The set of joined users, indexed by ID */
+    protected joinedUsers: Map<Guid, User>;
+    /** The set of joined users */
+    get users(): User[];
+    /**
+     * Set up the user filter
+     * @param context An MRE.Context object, or another user filter instance
+     */
+    constructor(context: UserEntryExitPoint);
+    /** Register a callback that will be called when a user that passes the filter joins the MRE session */
+    onUserJoined(callback: UserEntryExitCallback): void;
+    /** Deregister an [[onUserJoined]] callback */
+    offUserJoined(callback: UserEntryExitCallback): void;
+    /** Register a callback that will be called when a user that passes the filter leaves the MRE session */
+    onUserLeft(callback: UserEntryExitCallback): void;
+    /** Deregister an [[onUserLeft]] callback */
+    offUserLeft(callback: UserEntryExitCallback): void;
+    /** Process an input event only from users that pass the filter */
+    filterInput<T = void>(eventHandler: ActionHandler<T>): ActionHandler<T>;
+    /** Evaluates whether a user should be accepted by the filter for the given event type */
+    protected abstract shouldForwardUserEvent(user: User, type: UserInteractionType): boolean;
+    private onUpstreamUserJoined;
+    private onUpstreamUserLeft;
+}
+//# sourceMappingURL=userFilter.d.ts.map

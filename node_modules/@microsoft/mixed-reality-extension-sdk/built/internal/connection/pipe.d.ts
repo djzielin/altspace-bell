@@ -1,0 +1,21 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { EventedConnection } from '../../internal';
+/**
+ * @hidden
+ * Class representing two connected endpoints, allowing them to send and receive to and from one another
+ */
+export declare class Pipe {
+    private _local;
+    private _remote;
+    private _onLocalClose;
+    private _onRemoteClose;
+    get local(): EventedConnection;
+    get remote(): EventedConnection;
+    constructor();
+    private onLocalClose;
+    private onRemoteClose;
+}
+//# sourceMappingURL=pipe.d.ts.map

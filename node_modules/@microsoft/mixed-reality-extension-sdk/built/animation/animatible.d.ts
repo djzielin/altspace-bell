@@ -1,0 +1,19 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Actor } from '..';
+/** The types that support animation */
+export declare type Animatible = Actor;
+/** The names of types that support animation */
+export declare enum AnimatibleName {
+    Actor = "actor"
+}
+/**
+ * Get an object's animation type.
+ * @param obj The object you want the type for.
+ * @returns An [[AnimatibleName]] value, or null if the object does not match an animatible type.
+ * @hidden
+ */
+export declare function getAnimatibleName(obj: any): AnimatibleName;
+//# sourceMappingURL=animatible.d.ts.map

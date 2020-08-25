@@ -1,0 +1,196 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = require("events");
+const __1 = require("../..");
+const internal_1 = require("../../internal");
+/**
+ * @hidden
+ * Class to handle sending and receiving messages with a client.
+ */
+class Protocol extends events_1.EventEmitter {
+    constructor(_conn) {
+        super();
+        this._conn = _conn;
+        this.middlewares = [];
+        this.onReceive = (message) => {
+            this.recvMessage(message);
+        };
+        this.onClose = () => {
+            for (const id of this.promises.keys()) {
+                this.rejectPromiseForMessage(id, "Connection closed.");
+            }
+        };
+        this.onReceive = this.onReceive.bind(this);
+        this.onClose = this.onClose.bind(this);
+        this.promise = new Promise((resolve, reject) => {
+            this.promiseResolve = resolve;
+            this.promiseReject = reject;
+        });
+    }
+    get conn() { return this._conn; }
+    get promises() { return this.conn.promises; }
+    get name() { return this.constructor.name; }
+    async run() {
+        try {
+            this.startListening();
+            await this.completed();
+        }
+        catch (e) {
+            this.reject(e);
+        }
+    }
+    async completed() {
+        return this.promise;
+    }
+    use(middleware) {
+        this.middlewares.push(middleware);
+    }
+    startListening() {
+        __1.log.debug('network', `${this.name} started listening`);
+        this.conn.on('recv', this.onReceive);
+        this.conn.on('close', this.onClose);
+    }
+    stopListening() {
+        this.conn.off('recv', this.onReceive);
+        this.conn.off('close', this.onClose);
+        __1.log.debug('network', `${this.name} stopped listening`);
+    }
+    sendPayload(payload, promise) {
+        this.sendMessage({ payload }, promise);
+    }
+    sendMessage(message, promise, timeoutSeconds, serializedMessage) {
+        var _a;
+        message.id = (_a = message.id, (_a !== null && _a !== void 0 ? _a : __1.newGuid()));
+        // Run message through all the middlewares
+        const middlewares = this.middlewares.slice();
+        for (const middleware of middlewares) {
+            if (middleware.beforeSend) {
+                message = middleware.beforeSend(message, promise);
+                if (!message) {
+                    if (promise && promise.reject) {
+                        promise.reject();
+                    }
+                    return;
+                }
+            }
+        }
+        const setReplyTimeout = () => {
+            if (timeoutSeconds > 0) {
+                return setTimeout(() => {
+                    const reason = `${this.name} timed out awaiting response for ${message.payload.type}, ` +
+                        `id:${message.id}.`;
+                    __1.log.error('network', reason);
+                    this.rejectPromiseForMessage(message.id, reason);
+                    this.conn.close();
+                }, timeoutSeconds * 1000);
+            }
+        };
+        // Save the reply callback
+        if (promise) {
+            this.promises.set(message.id, {
+                promise,
+                timeout: setReplyTimeout()
+            });
+        }
+        __1.log.verbose('network', `${this.name} send id:${message.id.substr(0, 8)}, type:${message.payload.type}`);
+        __1.log.verbose('network-content', JSON.stringify(message, (key, value) => internal_1.filterEmpty(value)));
+        this.conn.send(message, serializedMessage);
+    }
+    recvMessage(message) {
+        if (message.replyToId) {
+            __1.log.verbose('network', `${this.name} recv id:${message.id.substr(0, 8)}, ` +
+                `replyTo:${message.replyToId.substr(0, 8)}, type:${message.payload.type}`);
+        }
+        else {
+            __1.log.verbose('network', `${this.name} recv id:${message.id.substr(0, 8)}, ` +
+                `type:${message.payload.type}`);
+        }
+        __1.log.verbose('network-content', JSON.stringify(message, (key, value) => internal_1.filterEmpty(value)));
+        // Run message through all the middlewares
+        const middlewares = this.middlewares.slice();
+        for (const middleware of middlewares) {
+            if (middleware.beforeRecv) {
+                message = middleware.beforeRecv(message);
+                if (!message) {
+                    return;
+                }
+            }
+        }
+        if (message.replyToId) {
+            this.handleReplyMessage(message);
+        }
+        else {
+            this.recvPayload(message.payload);
+        }
+    }
+    recvPayload(payload) {
+        if (payload && payload.type && payload.type.length) {
+            const handler = this[`recv-${payload.type}`] || (() => {
+                __1.log.error('network', `[ERROR] ${this.name} has no handler for payload ${payload.type}!`);
+            });
+            handler(payload);
+        }
+        else {
+            __1.log.error('network', `[ERROR] ${this.name} invalid message payload!`);
+        }
+    }
+    drainPromises() {
+        if (Object.keys(this.promises).length) {
+            return new Promise((resolve, reject) => {
+                /* eslint-disable @typescript-eslint/no-use-before-define */
+                const check = () => Object.keys(this.promises).length ? set() : resolve();
+                const set = () => setTimeout(() => check(), 10);
+                set();
+                /* eslint-enable @typescript-eslint/no-use-before-define */
+                // TODO: Would be better to not have to check on a timer here
+            });
+        }
+    }
+    resolve() {
+        this.stopListening();
+        this.promiseResolve();
+    }
+    reject(e) {
+        this.stopListening();
+        this.promiseReject(e);
+    }
+    handleReplyMessage(message) {
+        const queuedPromise = this.promises.get(message.replyToId);
+        if (!queuedPromise) {
+            this.missingPromiseForReplyMessage(message);
+        }
+        else {
+            this.promises.delete(message.replyToId);
+            clearTimeout(queuedPromise.timeout);
+            queuedPromise.promise.resolve(message.payload, message);
+        }
+    }
+    rejectPromiseForMessage(messageId, reason) {
+        var _a, _b;
+        const queuedPromise = this.promises.get(messageId);
+        if ((_b = (_a = queuedPromise) === null || _a === void 0 ? void 0 : _a.promise) === null || _b === void 0 ? void 0 : _b.reject) {
+            try {
+                clearTimeout(queuedPromise.timeout);
+            }
+            catch (_c) { }
+            try {
+                this.promises.delete(messageId);
+            }
+            catch (_d) { }
+            try {
+                queuedPromise.promise.reject(reason);
+            }
+            catch (_e) { }
+        }
+    }
+    missingPromiseForReplyMessage(message) {
+        __1.log.error('network', `[ERROR] ${this.name} received unexpected reply message! ` +
+            `payload: ${message.payload.type}, replyToId: ${message.replyToId}`);
+    }
+}
+exports.Protocol = Protocol;
+//# sourceMappingURL=protocol.js.map

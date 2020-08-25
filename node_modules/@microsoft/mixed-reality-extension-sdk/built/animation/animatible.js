@@ -1,0 +1,40 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("..");
+/* eslint-disable no-shadow */
+/** The names of types that support animation */
+var AnimatibleName;
+(function (AnimatibleName) {
+    AnimatibleName["Actor"] = "actor";
+    /*
+    Animation = 'animation',
+    Material = 'material'
+    */
+})(AnimatibleName = exports.AnimatibleName || (exports.AnimatibleName = {}));
+/* eslint-enable no-shadow */
+/**
+ * Get an object's animation type.
+ * @param obj The object you want the type for.
+ * @returns An [[AnimatibleName]] value, or null if the object does not match an animatible type.
+ * @hidden
+ */
+function getAnimatibleName(obj) {
+    if (obj instanceof __1.Actor) {
+        return AnimatibleName.Actor;
+        /*
+        } else if (obj instanceof Animation) {
+            return AnimatibleName.Animation;
+        } else if (obj instanceof Material) {
+            return AnimatibleName.Material;
+        */
+    }
+    else {
+        return null;
+    }
+}
+exports.getAnimatibleName = getAnimatibleName;
+//# sourceMappingURL=animatible.js.map

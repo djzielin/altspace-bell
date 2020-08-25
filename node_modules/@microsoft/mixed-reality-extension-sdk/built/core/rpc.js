@@ -1,0 +1,79 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/* eslint-disable max-classes-per-file */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * RPC interface. Able to send and receive RPC calls.
+ */
+class RPC {
+    constructor(_context) {
+        this._context = _context;
+        this.handlers = new Map();
+    }
+    get context() { return this._context; }
+    on(procName, handler) {
+        if (handler) {
+            this.handlers.set(procName, handler);
+        }
+        else {
+            this.handlers.delete(procName);
+        }
+    }
+    removeAllHandlers() {
+        this.handlers.clear();
+    }
+    send(options, ...args) {
+        this.context.internal.sendPayload({
+            type: 'app2engine-rpc',
+            procName: options.procName,
+            channelName: options.channelName,
+            userId: options.userId,
+            args
+        });
+    }
+    receive(procName, userId, ...args) {
+        const handler = this.handlers.get(procName);
+        if (handler) {
+            handler({ userId }, ...args);
+        }
+    }
+}
+exports.RPC = RPC;
+/**
+ * RPC channel interface. Able to route channel messages to handlers.
+ */
+class RPCChannels {
+    constructor() {
+        this.channelHandlers = new Map();
+    }
+    setChannelHandler(channelName, handler) {
+        if (channelName) {
+            if (handler) {
+                this.channelHandlers.set(channelName, handler);
+            }
+            else {
+                this.channelHandlers.delete(channelName);
+            }
+        }
+        else {
+            this.globalHandler = handler;
+        }
+    }
+    receive(payload) {
+        let handler;
+        if (payload.channelName) {
+            handler = this.channelHandlers.get(payload.channelName);
+        }
+        else {
+            handler = this.globalHandler;
+        }
+        if (handler) {
+            handler.receive(payload.procName, payload.userId, ...payload.args);
+        }
+    }
+}
+exports.RPCChannels = RPCChannels;
+//# sourceMappingURL=rpc.js.map

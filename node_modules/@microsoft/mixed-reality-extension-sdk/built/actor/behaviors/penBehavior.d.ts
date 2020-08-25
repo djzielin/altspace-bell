@@ -1,0 +1,19 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { ToolBehavior } from '.';
+import { TransformLike } from '../..';
+interface DrawData {
+    transform: TransformLike;
+}
+interface PenEventData {
+    drawData: DrawData[];
+}
+/**
+ * @hidden Pen behavior class containing the target behavior actions.
+ */
+export declare abstract class PenBehavior extends ToolBehavior<PenEventData> {
+}
+export {};
+//# sourceMappingURL=penBehavior.d.ts.map

@@ -1,0 +1,27 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { ActionHandler, TargetBehavior } from '.';
+/**
+ * @hidden
+ */
+export declare abstract class ToolBehavior<ToolDataT> extends TargetBehavior {
+    private _holding;
+    private _using;
+    /**
+     * Add a holding handler to be called when the given hover state is triggered.
+     * @param holdingState The holding state to fire the handler on.
+     * @param handler The handler to call when the holding state is triggered.
+     * @return This tool behavior.
+     */
+    onHolding(holdingState: 'picked-up' | 'holding' | 'dropped', handler: ActionHandler<ToolDataT>): this;
+    /**
+     * Add a using handler to be called when the given hover state is triggered.
+     * @param usingState The using state to fire the handler on.
+     * @param handler The handler to call when the using state is triggered.
+     * @return This tool behavior.
+     */
+    onUsing(usingState: 'started' | 'using' | 'stopped', handler: ActionHandler<ToolDataT>): this;
+}
+//# sourceMappingURL=toolBehavior.d.ts.map

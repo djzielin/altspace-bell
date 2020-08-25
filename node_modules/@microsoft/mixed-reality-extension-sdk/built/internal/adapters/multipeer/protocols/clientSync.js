@@ -1,0 +1,271 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("../../../..");
+const internal_1 = require("../../../../internal");
+// break import cycle
+const protocols_1 = require("../../../protocols");
+/**
+ * @hidden
+ * Synchronizes application state with a client.
+ */
+class ClientSync extends protocols_1.Protocol {
+    constructor(client) {
+        super(client.conn);
+        this.client = client;
+        this.inProgressStages = [];
+        this.completedStages = [];
+        // The order of synchronization stages.
+        this.sequence = [
+            'load-assets',
+            'create-actors',
+            'active-media-instances',
+            'set-behaviors',
+            'create-animations',
+            'sync-animations',
+        ];
+        /**
+         * @hidden
+         * Driver for the `load-assets` synchronization stage.
+         */
+        this['stage:load-assets'] = () => {
+            // Send all cached asset creation messages.
+            for (const creator of this.client.session.assetCreators) {
+                this.sendMessage(creator);
+            }
+            // Send all cached asset-update messages.
+            for (const update of this.client.session.assets.map(a => a.update).filter(x => !!x)) {
+                this.sendMessage(update);
+            }
+        };
+        /**
+         * @hidden
+         * Driver for the `create-actors` synchronization stage.
+         */
+        this['stage:create-actors'] = () => {
+            // Sync cached create-actor hierarchies, starting at roots.
+            this.client.session.rootActors.map(syncActor => this.createActorRecursive(syncActor));
+        };
+        /**
+         * @hidden
+         * Driver for the `set-behaviors` synchronization stage.
+         */
+        this['stage:set-behaviors'] = () => {
+            // Send all cached set-behavior messages.
+            this.client.session.actors.map(syncActor => this.createActorBehavior(syncActor));
+        };
+        /**
+         * @hidden
+         * Driver for the `active-media-instances` synchronization stage.
+         */
+        this['stage:active-media-instances'] = () => {
+            // Send all cached set-behavior messages.
+            this.client.session.actors.map(syncActor => this.activeMediaInstances(syncActor));
+        };
+        /**
+         * @hidden
+         * Driver for the `create-animations` synchronization stage.
+         */
+        this['stage:create-animations'] = () => {
+            var _a;
+            // Send all create-animation calls. The other animation creators were sent in create-actors.
+            for (const message of this.client.session.animationCreators) {
+                if (message.payload.type === 'create-animation-2') {
+                    const createMessage = message;
+                    const updateMessage = this.client.session.animationSet.get(createMessage.payload.animation.id).update;
+                    // merge lastest state into initial state for create
+                    super.sendMessage(Object.assign(Object.assign({}, createMessage), { payload: Object.assign(Object.assign({}, createMessage.payload), { animation: Object.assign(Object.assign({}, createMessage.payload.animation), (_a = updateMessage) === null || _a === void 0 ? void 0 : _a.payload.animation) }) }));
+                }
+            }
+        };
+        /**
+         * @hidden
+         * Driver for the `sync-animations` synchronization stage.
+         */
+        this['stage:sync-animations'] = () => {
+            // sync new-style animations
+            for (const anim of this.client.session.animations) {
+                const createMessage = this.client.session.animationCreatorSet.get(anim.creatorMessageId);
+                // direct animation updates are merged into the create call, skip here
+                if (anim.update && createMessage.payload.type !== 'create-animation-2') {
+                    super.sendMessage(anim.update);
+                }
+            }
+        };
+        // Behave like a server-side endpoint (send heartbeats, measure connection quality)
+        this.use(new protocols_1.ServerPreprocessing());
+        // Queue up user-exclusive messages until the user has joined
+        this.use(new internal_1.ClientDesyncPreprocessor(client));
+    }
+    /** @override */
+    get name() { return `${this.constructor.name} client ${this.client.id.substr(0, 8)}`; }
+    /**
+     * @override
+     * Handle the outgoing message according to the synchronization rules specified for this payload.
+     */
+    sendMessage(message, promise, timeoutSeconds) {
+        var _a;
+        message.id = (_a = message.id, (_a !== null && _a !== void 0 ? _a : __1.newGuid()));
+        const handling = this.handlingForMessage(message);
+        switch (handling) {
+            case 'allow': {
+                super.sendMessage(message, promise, timeoutSeconds);
+                break;
+            }
+            case 'queue': {
+                this.client.queueMessage(message, promise, timeoutSeconds);
+                break;
+            }
+            case 'ignore': {
+                break;
+            }
+            case 'error': {
+                __1.log.error('network', `[ERROR] ${this.name}: ` +
+                    `Invalid message for send during synchronization stage: ${message.payload.type}. ` +
+                    `In progress: ${this.inProgressStages.join(',')}. ` +
+                    `Complete: ${this.completedStages.join(',')}.`);
+            }
+        }
+    }
+    /** @override */
+    missingPromiseForReplyMessage(message) {
+        // Ignore. Sync protocol receives reply messages for create-* messages, but doesn't queue
+        // completion promises for them because it doesn't care about when they complete.
+    }
+    handlingForMessage(message) {
+        const rule = internal_1.Rules[message.payload.type] || internal_1.MissingRule;
+        let handling = rule.synchronization.before;
+        if (this.isStageComplete(rule.synchronization.stage)) {
+            handling = rule.synchronization.after;
+        }
+        else if (this.isStageInProgress(rule.synchronization.stage)) {
+            handling = rule.synchronization.during;
+        }
+        return handling;
+    }
+    isStageComplete(stage) {
+        return this.completedStages.includes(stage);
+    }
+    isStageInProgress(stage) {
+        return this.inProgressStages.includes(stage);
+    }
+    beginStage(stage) {
+        __1.log.debug('network', `${this.name} - begin stage '${stage}'`);
+        this.inProgressStages = [...this.inProgressStages, stage];
+    }
+    completeStage(stage) {
+        __1.log.debug('network', `${this.name} - complete stage '${stage}'`);
+        this.inProgressStages = this.inProgressStages.filter(item => item !== stage);
+        this.completedStages = [...this.completedStages, stage];
+    }
+    async executeStage(stage) {
+        const handler = this[`stage:${stage}`];
+        if (handler) {
+            await handler(); // Allow exception to propagate.
+        }
+        else {
+            __1.log.error('network', `[ERROR] ${this.name}: No handler for stage ${stage}!`);
+        }
+    }
+    /**
+     * @override
+     */
+    async run() {
+        try {
+            this.startListening();
+            this.beginStage('always');
+            if (this.client.session.peerAuthoritative) {
+                // Run all the synchronization stages.
+                for (const stage of this.sequence) {
+                    this.beginStage(stage);
+                    await this.executeStage(stage);
+                    this.completeStage(stage);
+                    await this.sendQueuedMessages();
+                }
+            }
+            this.completeStage('always');
+            // Notify the client we're done synchronizing.
+            this.sendPayload({ type: 'sync-complete' });
+            // Send all remaining queued messages.
+            await this.sendQueuedMessages();
+            this.resolve();
+        }
+        catch (e) {
+            this.reject(e);
+        }
+    }
+    createActorRecursive(actor) {
+        // Start creating this actor and its creatable children.
+        this.createActor(actor); // Allow exception to propagate.
+        // const children = this.client.session.childrenOf(actor.created.message.payload.actor.id);
+        const children = this.client.session.creatableChildrenOf(actor.initialization.message.payload.actor.id);
+        if (children.length) {
+            for (const child of children) {
+                this.createActorRecursive(child);
+            }
+        }
+    }
+    createActorBehavior(actor) {
+        if (actor.behavior) {
+            super.sendPayload({
+                type: 'set-behavior',
+                behaviorType: actor.behavior,
+                actorId: actor.actorId
+            });
+        }
+    }
+    createActor(actor) {
+        if (actor.initialization && actor.initialization.message.payload.type) {
+            return this.sendMessage(actor.initialization.message);
+        }
+    }
+    activeMediaInstances(actor) {
+        (actor.activeMediaInstances || [])
+            .map(activeMediaInstance => {
+            // TODO This sound tweaking should ideally be done on the client, because then it can consider the
+            // time it takes for packet to arrive. This is needed for optimal timing .
+            const targetTime = Date.now() / 1000.0;
+            if (activeMediaInstance.expirationTime !== undefined &&
+                targetTime > activeMediaInstance.expirationTime) {
+                // non-looping mediainstance has completed, so ignore it
+                return undefined;
+            }
+            if (activeMediaInstance.message.payload.options.paused !== true) {
+                let timeOffset = (targetTime - activeMediaInstance.basisTime);
+                if (activeMediaInstance.message.payload.options.pitch !== undefined) {
+                    timeOffset *= Math.pow(2.0, (activeMediaInstance.message.payload.options.pitch / 12.0));
+                }
+                if (activeMediaInstance.message.payload.options.time === undefined) {
+                    activeMediaInstance.message.payload.options.time = 0.0;
+                }
+                activeMediaInstance.message.payload.options.time += timeOffset;
+                activeMediaInstance.basisTime = targetTime;
+            }
+            return this.sendMessage(activeMediaInstance.message);
+        });
+    }
+    async sendQueuedMessages() {
+        // 1. Get the subset of queued messages that can be sent now.
+        // 2. Send the messages and wait for expected replies.
+        // 3. Repeat until no more messages to send.
+        do {
+            const queuedMessages = this.client.filterQueuedMessages((queuedMessage) => {
+                const message = queuedMessage.message;
+                const handling = this.handlingForMessage(message);
+                return handling === 'allow';
+            });
+            if (!queuedMessages.length) {
+                break;
+            }
+            for (const queuedMessage of queuedMessages) {
+                this.sendMessage(queuedMessage.message, queuedMessage.promise, queuedMessage.timeoutSeconds);
+            }
+            await this.drainPromises();
+        } while (true); // eslint-disable-line no-constant-condition
+    }
+}
+exports.ClientSync = ClientSync;
+//# sourceMappingURL=clientSync.js.map

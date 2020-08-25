@@ -1,0 +1,69 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { Actor, BoxAlignment } from '..';
+/** Options for [[GridLayout.addCell]]. */
+export interface AddCellOptions {
+    /** The actor to be placed in the grid cell. Must be parented to the grid root. */
+    contents: Actor;
+    /** The row index, with 0 at the top. */
+    row: number;
+    /** The column index, with 0 on the left. */
+    column: number;
+    /** The width of this cell for layout purposes. Should include any desired padding. */
+    width: number;
+    /** The height of this cell for layout purposes. Should include any desired padding. */
+    height: number;
+    /** Where the actor should be placed within the cell box. Defaults to [[GridLayout.defaultCellAlignment]]. */
+    alignment?: BoxAlignment;
+}
+/**
+ * Lay out actors in a grid along the root actor's local XY plane. Assign actors to the grid with [[addCell]],
+ * and apply updates with [[applyLayout]].
+ */
+export declare class PlanarGridLayout {
+    private anchor;
+    gridAlignment: BoxAlignment;
+    defaultCellAlignment: BoxAlignment;
+    private contents;
+    /**
+     * Initialize a new grid layout.
+     * @param anchor The grid's anchor actor, the point to which the grid is aligned.
+     * @param gridAlignment How the grid should be aligned to its anchor, where [[BoxAlignment.TopLeft]] will place
+     * the grid above and to the left of the anchor, and the lower right corner will touch the anchor.
+     * @param defaultCellAlignment How cells should be aligned by default.
+     */
+    constructor(anchor: Actor, gridAlignment?: BoxAlignment, defaultCellAlignment?: BoxAlignment);
+    /** The number of columns in this grid. */
+    getColumnCount(): number;
+    /** The number of rows in this grid. */
+    getRowCount(): number;
+    /** The width of the full grid. */
+    getGridWidth(): number;
+    /** The height of the full grid. */
+    getGridHeight(): number;
+    /**
+     * The width of a particular column.
+     * @param i The column index.
+     */
+    getColumnWidth(i: number): number;
+    /**
+     * The height of a particular row.
+     * @param i The row index.
+     */
+    getRowHeight(i: number): number;
+    /** The widths of every column. */
+    getColumnWidths(): number[];
+    /** The heights of every row. */
+    getRowHeights(): number[];
+    /**
+     * Add an actor to the grid. The actor's position will not be updated until [[applyLayout]] is called.
+     * @param options The cell's configuration.
+     */
+    addCell(options: AddCellOptions): void;
+    /** Recompute the positions of all actors in the grid. */
+    applyLayout(animateDuration?: number, animateCurve?: import("..").EaseCurve): void;
+    private static getOffsetFromAlignment;
+}
+//# sourceMappingURL=planarGridLayout.d.ts.map

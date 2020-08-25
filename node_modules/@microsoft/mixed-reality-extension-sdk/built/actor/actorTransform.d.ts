@@ -1,0 +1,21 @@
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+import { ScaledTransform, ScaledTransformLike, Transform, TransformLike } from "..";
+export interface ActorTransformLike {
+    app: Partial<TransformLike>;
+    local: Partial<ScaledTransformLike>;
+}
+export declare class ActorTransform implements ActorTransformLike {
+    private _app;
+    private _local;
+    get app(): Transform;
+    set app(value: Transform);
+    get local(): ScaledTransform;
+    set local(value: ScaledTransform);
+    constructor();
+    copy(from: Partial<ActorTransformLike>): this;
+    toJSON(): ActorTransformLike;
+}
+//# sourceMappingURL=actorTransform.d.ts.map

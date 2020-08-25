@@ -1,0 +1,55 @@
+"use strict";
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const __1 = require("..");
+const assetInternal_1 = require("./assetInternal");
+// break import cycle
+const asset_1 = require("./asset");
+class Prefab extends asset_1.Asset {
+    /** @hidden */
+    constructor(container, def) {
+        super(container, def);
+        this._internal = new assetInternal_1.AssetInternal(this);
+        if (!def.prefab) {
+            throw new Error("Cannot construct prefab from non-prefab definition");
+        }
+        this.copy(def);
+    }
+    /** @hidden */
+    get internal() { return this._internal; }
+    /** @inheritdoc */
+    get actorCount() { return this._actorCount; }
+    /** @inheritdoc */
+    get prefab() { return this; }
+    copy(from) {
+        if (!from) {
+            return this;
+        }
+        // Pause change detection while we copy the values into the actor.
+        const wasObserving = this.internal.observing;
+        this.internal.observing = false;
+        super.copy(from);
+        if (from.prefab) {
+            this._actorCount = from.prefab.actorCount;
+        }
+        this.internal.observing = wasObserving;
+        return this;
+    }
+    /** @hidden */
+    toJSON() {
+        return Object.assign(Object.assign({}, super.toJSON()), { prefab: {
+                actorCount: this._actorCount
+            } });
+    }
+    /** @hidden */
+    breakReference(ref) {
+        if (!(ref instanceof __1.Actor)) {
+            return;
+        }
+    }
+}
+exports.Prefab = Prefab;
+//# sourceMappingURL=prefab.js.map
