@@ -4,14 +4,14 @@
 
 import * as MRE from '@microsoft/mixed-reality-extension-sdk';
 import Users from './users';
-import { ENAMETOOLONG } from 'constants';
 
 export default class App {
 	public assets: MRE.AssetContainer;	
 	public ourUsers: Users;
 	public boxMesh: MRE.Mesh;
 	public sphereMesh: MRE.Mesh;
-
+	public ringHistory: Map<MRE.Guid, number>=new Map(); //number of rings in last 15 seconds
+	
 	constructor(public context: MRE.Context, public baseUrl: string, public baseDir: string) {
 
 		this.ourUsers = new Users(this);
@@ -60,30 +60,35 @@ export default class App {
 					},
 					isTrigger: true
 				}
-
 			}
 		});
 
 		bellCollider.collider.onTrigger("trigger-enter", (otherActor: MRE.Actor) => {
-			MRE.log.info("app", "trigger enter on piano note!");
-
 			if (otherActor.name.includes('SpawnerUserHand')) {
-				const guid = otherActor.name.substr(16);
-				//this.ourApp.ourConsole.logMessage("  full user name is: " + otherActor.name);
-				//this.ourApp.ourConsole.logMessage("  guid is: " + guid);
+				MRE.log.info("app", "user hand trigger enter on bell!");
 
-				this.spawnSound(ourSound);
+				const guid = otherActor.name.substr(16);	
+				this.spawnSound(ourSound,MRE.parseGuid(guid));
 			} 
 		});
-
 		
 		const buttonBehavior = bellCollider.setBehavior(MRE.ButtonBehavior);
 		buttonBehavior.onButton("pressed", (user: MRE.User, buttonData: MRE.ButtonEventData) => {
-			this.spawnSound(ourSound);
+			MRE.log.info("app", "uesr clicked on bell!");
+			this.spawnSound(ourSound,user.id);
 		});
 	}
 
-	private spawnSound(ourSound: MRE.Sound){
+	private spawnSound(ourSound: MRE.Sound, user: MRE.Guid){
+		let numRings=0;
+		if(this.ringHistory.has(user)){
+			numRings=this.ringHistory.get(user)
+			if(numRings>2){
+				MRE.log.info("app", "user has been hitting the bell to much! rejected sound spawn");
+				return;
+			}
+		}
+
 		const bellSound = MRE.Actor.Create(this.context, {
 			actor: {
 				name: 'bellSound',
@@ -95,7 +100,7 @@ export default class App {
 			}
 		});
 
-		const mediaInstance=bellSound.startSound(ourSound.id, {
+		bellSound.startSound(ourSound.id, {
 			doppler: 0,
 			pitch: 0.0,
 			looping: false,
@@ -103,9 +108,17 @@ export default class App {
 			volume: 0.5,
 			rolloffStartDistance: 1.0 
 		});	
-
+		
 		setTimeout(()=>{
 			bellSound.destroy();
 		},4000);
+
+		numRings++;
+		this.ringHistory.set(user,numRings);
+
+		setTimeout(()=>{ //remove from ring history after 15 seconds
+			const rings=this.ringHistory.get(user);
+			this.ringHistory.set(user,rings-1);
+		},15000);
 	}
 }

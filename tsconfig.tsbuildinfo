@@ -1207,8 +1207,8 @@
         "affectsGlobalScope": false
       },
       "./src/app.ts": {
-        "version": "14dd18a24188aac4b3f977c64ca27252290113575d65eb1699b231e65fe3967e",
-        "signature": "a866d3b9d946773c0c41b72a8df963f43e2f851420ee75aa62a8c7f6daa6717d",
+        "version": "581c981c58af9a827c8dbb274cca393de414b99fcff876d145a9b2d05e59f147",
+        "signature": "d0d4c2770368bd03624cee33ba399b52cb3f4ee685d1a2fe67d6ae566767de3e",
         "affectsGlobalScope": false
       },
       "./node_modules/dotenv/types/index.d.ts": {
@@ -2716,7 +2716,6 @@
       ],
       "./src/app.ts": [
         "./node_modules/@microsoft/mixed-reality-extension-sdk/built/index.d.ts",
-        "./node_modules/@types/node/constants.d.ts",
         "./node_modules/@types/node/ts3.2/util.d.ts",
         "./node_modules/@types/node/util.d.ts",
         "./src/users.ts"
