@@ -1,8 +1,8 @@
 {
-	"name": "altspace music modules",
-	"description": "various music generators and displayers",
+	"name": "altspace bell",
+	"description": "invisible collider. plays bell sound when user clicks or touches",
 	"author": "djzielin",
 	"license": "MIT",
-	"repositoryUrl": "https://github.com/djzielin/altspace-spawner",
-	"optionalPermissions": ["user-interaction"]
+	"repositoryUrl": "https://github.com/djzielin/altspace-bell",
+	"optionalPermissions": ["user-interaction","user-tracking"]
 }

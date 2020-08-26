@@ -33,7 +33,6 @@ const server = new MRE.WebHost({
 	baseUrl: 'http://199.19.73.131:'+port.toString(),
 	port: port,
 	baseDir: resolvePath(__dirname, '../public'),
-	permissions: [MRE.Permissions.UserInteraction]
 });
 
 // Handle new application sessions
