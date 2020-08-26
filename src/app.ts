@@ -20,8 +20,13 @@ export default class App {
 		this.boxMesh = this.assets.createBoxMesh('boxMesh', 1.0, 1.0, 1.0);
 		this.sphereMesh= this.assets.createSphereMesh('sphereMesh',0.5,10,10);
 
-
-		this.context.onUserLeft(user => this.ourUsers.userLeft(user));
+		this.context.onUserLeft(user => {
+			this.ourUsers.userLeft(user);
+			if(this.ringHistory.has(user.id)){
+				this.ringHistory.delete(user.id);
+			}
+		});
+		
 		this.context.onUserJoined(user => this.ourUsers.userJoined(user));
 
 		this.context.onStarted(() => this.started());
