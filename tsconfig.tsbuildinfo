@@ -1207,8 +1207,8 @@
         "affectsGlobalScope": false
       },
       "./src/app.ts": {
-        "version": "fc47c137e7347e8dd838fc07a75606c647998f70634fbb0238b7d9c6b6019c95",
-        "signature": "d0d4c2770368bd03624cee33ba399b52cb3f4ee685d1a2fe67d6ae566767de3e",
+        "version": "8261e1a2330881c9824ea5483287d8ff9ed2b230effd7af13fde9b3a90ec9f27",
+        "signature": "7aeed0c5fc323830a6dc0acc78174dcb7627f3d31870c55306369c6cadceb2c2",
         "affectsGlobalScope": false
       },
       "./node_modules/dotenv/types/index.d.ts": {

@@ -11,7 +11,9 @@ export default class App {
 	public boxMesh: MRE.Mesh;
 	public sphereMesh: MRE.Mesh;
 	public ringHistory: Map<MRE.Guid, number>=new Map(); //number of rings in last 15 seconds
-	
+	public bellCollider: MRE.Actor=null;
+	public ourSound: MRE.Sound;
+
 	constructor(public context: MRE.Context, public baseUrl: string, public baseDir: string) {
 
 		this.ourUsers = new Users(this);
@@ -26,8 +28,11 @@ export default class App {
 				this.ringHistory.delete(user.id);
 			}
 		});
-		
-		this.context.onUserJoined(user => this.ourUsers.userJoined(user));
+
+		this.context.onUserJoined(user => {
+			this.activateBellCollider();
+			this.ourUsers.userJoined(user);
+		});
 
 		this.context.onStarted(() => this.started());
 		this.context.onStopped(() => this.stopped());
@@ -42,12 +47,19 @@ export default class App {
 
 		const URL = `${this.baseUrl}/` + "bell.wav";
 
-		const ourSound = this.assets.createSound("bell_sound", {
+		this.ourSound = this.assets.createSound("bell_sound", {
 			uri: URL
-		});
+		});		
 
+		this.activateBellCollider();
+	}
 
-		const bellCollider = MRE.Actor.Create(this.context, {
+	private activateBellCollider(){
+		if(this.bellCollider){
+			this.bellCollider.destroy();
+		}
+
+		this.bellCollider = MRE.Actor.Create(this.context, {
 			actor: {
 				name: 'bellCollider',
 				transform: {
@@ -68,19 +80,19 @@ export default class App {
 			}
 		});
 
-		bellCollider.collider.onTrigger("trigger-enter", (otherActor: MRE.Actor) => {
+		this.bellCollider.collider.onTrigger("trigger-enter", (otherActor: MRE.Actor) => {
 			if (otherActor.name.includes('SpawnerUserHand')) {
 				MRE.log.info("app", "user hand trigger enter on bell!");
 
 				const guid = otherActor.name.substr(16);	
-				this.spawnSound(ourSound,MRE.parseGuid(guid));
+				this.spawnSound(this.ourSound,MRE.parseGuid(guid));
 			} 
 		});
 		
-		const buttonBehavior = bellCollider.setBehavior(MRE.ButtonBehavior);
+		const buttonBehavior = this.bellCollider.setBehavior(MRE.ButtonBehavior);
 		buttonBehavior.onButton("pressed", (user: MRE.User, buttonData: MRE.ButtonEventData) => {
 			MRE.log.info("app", "uesr clicked on bell!");
-			this.spawnSound(ourSound,user.id);
+			this.spawnSound(this.ourSound,user.id);
 		});
 	}
 
